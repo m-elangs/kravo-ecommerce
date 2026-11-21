@@ -1,11 +1,41 @@
-import React from 'react'
-import { Plus, BadgePercent, Edit2 } from 'lucide-react'
+import React, { useState, useEffect } from 'react'
+import { Plus, BadgePercent, Edit2, Loader2, Save } from 'lucide-react'
+import { adminApi } from '../../api/adminApi'
 
 export default function WholesalePricingPage() {
-  const tiers = [
-    { id: 1, product: 'Truffle Cassava 100g', moq: 50, tier1: '50-199 pcs (Rp 18.000)', tier2: '200-499 pcs (Rp 16.500)', tier3: '>= 500 pcs (Rp 14.500)' },
-    { id: 2, product: 'Golden Cheddar Crackers 100g', moq: 50, tier1: '50-199 pcs (Rp 16.500)', tier2: '200-499 pcs (Rp 15.000)', tier3: '>= 500 pcs (Rp 13.500)' },
-  ]
+  const [tiers, setTiers] = useState([])
+  const [loading, setLoading] = useState(true)
+
+  const fetchTiers = () => {
+    setLoading(true)
+    adminApi.getWholesalePricing()
+      .then(res => {
+        if (res.success && res.data) {
+          setTiers(res.data)
+        }
+      })
+      .catch(() => { })
+      .finally(() => setLoading(false))
+  }
+
+  useEffect(() => {
+    fetchTiers()
+  }, [])
+
+  const handleUpdateMoq = async (variantId, currentMoq) => {
+    const newMoq = prompt(`Ubah Minimum Order Quantity (MOQ) saat ini (${currentMoq} pcs):`, currentMoq)
+    if (!newMoq || isNaN(newMoq)) return
+
+    try {
+      const res = await adminApi.updateMoq(variantId, parseInt(newMoq))
+      if (res.success) {
+        alert('MOQ varian berhasil diperbarui!')
+        fetchTiers()
+      }
+    } catch (e) {
+      alert('Gagal mengubah MOQ.')
+    }
+  }
 
   return (
     <div className="space-y-6 pb-12">
@@ -14,39 +44,65 @@ export default function WholesalePricingPage() {
           <h1 className="text-2xl font-black text-slate-900">Wholesale Pricing & MOQ Matrix</h1>
           <p className="text-xs text-slate-500">Konfigurasi batas Minimum Order Quantity dan jenjang harga grosir B2B.</p>
         </div>
-        <button className="px-4 py-2.5 rounded-xl bg-kravo-orange hover:bg-kravo-orangeHover text-white text-xs font-bold flex items-center gap-1.5 shadow-md">
-          <Plus className="w-4 h-4" /> Atur Tier Baru
-        </button>
       </div>
 
-      <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
-        <table className="w-full text-left text-xs">
-          <thead className="bg-slate-50 border-b border-slate-200 text-slate-400 font-bold uppercase">
-            <tr>
-              <th className="py-3 px-4">Produk Varian</th>
-              <th className="py-3 px-4">Wajib MOQ</th>
-              <th className="py-3 px-4">Tier 1</th>
-              <th className="py-3 px-4">Tier 2</th>
-              <th className="py-3 px-4">Tier 3 (Distributor)</th>
-              <th className="py-3 px-4 text-right">Edit Matrix</th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-slate-100 font-medium">
-            {tiers.map(t => (
-              <tr key={t.id}>
-                <td className="py-3.5 px-4 font-bold text-slate-900">{t.product}</td>
-                <td className="py-3.5 px-4 font-black text-rose-600">{t.moq} pcs</td>
-                <td className="py-3.5 px-4">{t.tier1}</td>
-                <td className="py-3.5 px-4 font-bold text-kravo-orange">{t.tier2}</td>
-                <td className="py-3.5 px-4 font-black text-emerald-700">{t.tier3}</td>
-                <td className="py-3.5 px-4 text-right">
-                  <button className="text-slate-400 hover:text-kravo-orange p-1"><Edit2 className="w-4 h-4 inline" /></button>
-                </td>
+      {loading ? (
+        <div className="py-20 flex flex-col items-center justify-center text-slate-400 gap-2">
+          <Loader2 className="w-8 h-8 animate-spin text-kravo-orange" />
+          <span className="text-xs">Memuat tabel aturan harga grosir...</span>
+        </div>
+      ) : (
+        <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+          <table className="w-full text-left text-xs">
+            <thead className="bg-slate-50 border-b border-slate-200 text-slate-400 font-bold uppercase">
+              <tr>
+                <th className="py-3 px-4">Produk Varian</th>
+                <th className="py-3 px-4">Harga Dasar Retail</th>
+                <th className="py-3 px-4">Minimal Kuantitas (Min Qty)</th>
+                <th className="py-3 px-4">Harga Satuan Grosir (Unit Price)</th>
+                <th className="py-3 px-4">Diskon Grosir</th>
+                <th className="py-3 px-4 text-right">Kelola MOQ</th>
               </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
+            </thead>
+            <tbody className="divide-y divide-slate-100 font-medium">
+              {tiers.map(t => {
+                const variant = t.product_variant
+                const product = variant?.product
+
+                return (
+                  <tr key={t.id}>
+                    <td className="py-3.5 px-4 font-bold text-slate-900">
+                      {product?.name} ({variant?.name})
+                    </td>
+                    <td className="py-3.5 px-4 text-slate-500">
+                      Rp {Number(variant?.retail_price || 0).toLocaleString('id-ID')}
+                    </td>
+                    <td className="py-3.5 px-4 font-black text-slate-800">
+                      &ge; {t.min_quantity} pcs
+                    </td>
+                    <td className="py-3.5 px-4 font-black text-emerald-700">
+                      Rp {Number(t.unit_price).toLocaleString('id-ID')}
+                    </td>
+                    <td className="py-3.5 px-4">
+                      <span className="px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 font-bold text-[10px]">
+                        Diskon {t.discount_percentage}%
+                      </span>
+                    </td>
+                    <td className="py-3.5 px-4 text-right">
+                      <button
+                        onClick={() => handleUpdateMoq(variant?.id, variant?.minimum_order_quantity || 50)}
+                        className="px-3 py-1 bg-slate-100 hover:bg-kravo-orange hover:text-white rounded-lg text-xs font-bold transition-colors"
+                      >
+                        Ubah MOQ ({variant?.minimum_order_quantity || 50} pcs)
+                      </button>
+                    </td>
+                  </tr>
+                )
+              })}
+            </tbody>
+          </table>
+        </div>
+      )}
     </div>
   )
 }

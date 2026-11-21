@@ -1,13 +1,28 @@
-import React from 'react'
-import { Plus, Search, Filter, Edit, Trash2, Eye } from 'lucide-react'
+import React, { useState, useEffect } from 'react'
+import { Plus, Search, Edit, Trash2, RefreshCw, Package, AlertTriangle } from 'lucide-react'
+import axiosClient from '../../api/axiosClient'
+
+const fmt = (n) => new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', maximumFractionDigits: 0 }).format(n)
 
 export default function ProductsListPage() {
-  const products = [
-    { id: 1, name: 'KRAVO Gourmet Truffle Cassava', cat: 'Cassava Chips', variants: 3, retailPrice: 'Rp 24.500', stock: 540, status: 'Active' },
-    { id: 2, name: 'KRAVO Golden Cheddar Crackers', cat: 'Cheese Crackers', variants: 2, retailPrice: 'Rp 22.000', stock: 320, status: 'Active' },
-    { id: 3, name: 'KRAVO Dark Fudge Brownie Cookies', cat: 'Chocolate Cookies', variants: 2, retailPrice: 'Rp 28.000', stock: 210, status: 'Active' },
-    { id: 4, name: 'KRAVO Spicy Ghost Pepper Crisps', cat: 'Potato Chips', variants: 3, retailPrice: 'Rp 26.000', stock: 18, status: 'Low Stock' },
-  ]
+  const [products, setProducts] = useState([])
+  const [loading, setLoading]   = useState(true)
+  const [search, setSearch]     = useState('')
+  const [page, setPage]         = useState(1)
+  const [meta, setMeta]         = useState(null)
+
+  const load = async (s = search, p = page) => {
+    setLoading(true)
+    try {
+      const { data } = await axiosClient.get('/admin/products', { params: { search: s, page: p, per_page: 20 } })
+      setProducts(data.data || [])
+      setMeta(data.meta || null)
+    } catch { setProducts([]) } finally { setLoading(false) }
+  }
+
+  useEffect(() => { load() }, [page])
+
+  const handleSearch = (e) => { e.preventDefault(); setPage(1); load(search, 1) }
 
   return (
     <div className="space-y-6 pb-12">
@@ -22,43 +37,80 @@ export default function ProductsListPage() {
       </div>
 
       <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
-        <div className="p-4 border-b border-slate-200 flex gap-4">
-          <input type="text" placeholder="Cari produk snack..." className="px-4 py-2 text-xs bg-slate-50 border border-slate-200 rounded-xl flex-1 max-w-sm" />
+        <div className="p-4 border-b border-slate-200 flex gap-3">
+          <form onSubmit={handleSearch} className="flex gap-2 flex-1 max-w-sm">
+            <input
+              type="text"
+              placeholder="Cari produk snack..."
+              value={search}
+              onChange={e => setSearch(e.target.value)}
+              className="px-4 py-2 text-xs bg-slate-50 border border-slate-200 rounded-xl flex-1"
+            />
+            <button type="submit" className="px-3 py-2 bg-kravo-dark text-white rounded-xl text-xs"><Search className="w-3.5 h-3.5" /></button>
+          </form>
+          <button onClick={() => load()} className="p-2 text-slate-400 hover:text-kravo-orange rounded-lg"><RefreshCw className="w-4 h-4" /></button>
         </div>
 
-        <table className="w-full text-left text-xs">
-          <thead className="bg-slate-50 border-b border-slate-200 text-slate-400 font-bold uppercase">
-            <tr>
-              <th className="py-3 px-4">Nama Produk</th>
-              <th className="py-3 px-4">Kategori</th>
-              <th className="py-3 px-4">Varian</th>
-              <th className="py-3 px-4">Harga Dasar Retail</th>
-              <th className="py-3 px-4">Total Stok</th>
-              <th className="py-3 px-4">Status</th>
-              <th className="py-3 px-4 text-right">Aksi</th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-slate-100 font-medium">
-            {products.map(p => (
-              <tr key={p.id}>
-                <td className="py-3.5 px-4 font-bold text-slate-900">{p.name}</td>
-                <td className="py-3.5 px-4 text-slate-600">{p.cat}</td>
-                <td className="py-3.5 px-4">{p.variants} varian</td>
-                <td className="py-3.5 px-4 font-bold">{p.retailPrice}</td>
-                <td className="py-3.5 px-4 font-black">{p.stock} pcs</td>
-                <td className="py-3.5 px-4">
-                  <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${
-                    p.status === 'Active' ? 'bg-emerald-100 text-emerald-800' : 'bg-amber-100 text-amber-800'
-                  }`}>{p.status}</span>
-                </td>
-                <td className="py-3.5 px-4 text-right space-x-2">
-                  <button className="text-slate-500 hover:text-kravo-orange"><Edit className="w-3.5 h-3.5 inline" /></button>
-                  <button className="text-slate-500 hover:text-rose-500"><Trash2 className="w-3.5 h-3.5 inline" /></button>
-                </td>
+        {loading ? (
+          <div className="flex items-center justify-center py-20">
+            <div className="w-8 h-8 border-2 border-kravo-orange border-t-transparent rounded-full animate-spin" />
+          </div>
+        ) : products.length === 0 ? (
+          <div className="flex flex-col items-center justify-center py-20 text-slate-400">
+            <Package className="w-10 h-10 mb-2" />
+            <p className="text-sm font-medium">Belum ada produk</p>
+          </div>
+        ) : (
+          <table className="w-full text-left text-xs">
+            <thead className="bg-slate-50 border-b border-slate-200 text-slate-400 font-bold uppercase">
+              <tr>
+                <th className="py-3 px-4">Nama Produk</th>
+                <th className="py-3 px-4">Kategori</th>
+                <th className="py-3 px-4">Varian</th>
+                <th className="py-3 px-4">Harga Retail</th>
+                <th className="py-3 px-4">Stok</th>
+                <th className="py-3 px-4">Status</th>
+                <th className="py-3 px-4 text-right">Aksi</th>
               </tr>
-            ))}
-          </tbody>
-        </table>
+            </thead>
+            <tbody className="divide-y divide-slate-100 font-medium">
+              {products.map(p => (
+                <tr key={p.id} className="hover:bg-slate-50/50 transition-colors">
+                  <td className="py-3.5 px-4 font-bold text-slate-900">{p.name}</td>
+                  <td className="py-3.5 px-4 text-slate-600">{p.category?.name ?? '-'}</td>
+                  <td className="py-3.5 px-4">{p.variants_count ?? '—'} varian</td>
+                  <td className="py-3.5 px-4 font-bold">{p.base_price ? fmt(p.base_price) : '—'}</td>
+                  <td className="py-3.5 px-4">
+                    <span className={`font-black ${(p.total_stock ?? 999) < 50 ? 'text-rose-600' : 'text-slate-900'}`}>
+                      {p.total_stock ?? '—'} pcs
+                    </span>
+                    {(p.total_stock ?? 999) < 50 && <AlertTriangle className="w-3 h-3 text-amber-500 inline ml-1" />}
+                  </td>
+                  <td className="py-3.5 px-4">
+                    <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${
+                      p.is_active ? 'bg-emerald-100 text-emerald-800' : 'bg-slate-100 text-slate-500'
+                    }`}>{p.is_active ? 'Aktif' : 'Nonaktif'}</span>
+                  </td>
+                  <td className="py-3.5 px-4 text-right space-x-2">
+                    <button className="text-slate-400 hover:text-kravo-orange transition-colors"><Edit className="w-3.5 h-3.5 inline" /></button>
+                    <button className="text-slate-400 hover:text-rose-500 transition-colors"><Trash2 className="w-3.5 h-3.5 inline" /></button>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        )}
+
+        {meta && meta.last_page > 1 && (
+          <div className="flex justify-between items-center px-4 py-3 border-t border-slate-100 text-xs text-slate-500">
+            <span>Total {meta.total} produk</span>
+            <div className="flex gap-1">
+              {Array.from({ length: meta.last_page }, (_, i) => i + 1).map(p => (
+                <button key={p} onClick={() => setPage(p)} className={`w-7 h-7 rounded-lg font-bold ${page === p ? 'bg-kravo-orange text-white' : 'hover:bg-slate-100'}`}>{p}</button>
+              ))}
+            </div>
+          </div>
+        )}
       </div>
     </div>
   )
