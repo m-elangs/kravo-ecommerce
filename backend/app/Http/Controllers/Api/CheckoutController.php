@@ -39,6 +39,14 @@ class CheckoutController extends Controller
         ]);
 
         $user = $request->user();
+
+        if ($user && $user->isAdmin()) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Akun Administrator tidak diperuntukkan untuk melakukan pembelian/checkout. Silakan gunakan akun Pelanggan (Customer) atau Reseller.',
+            ], 403);
+        }
+
         $isWholesale = $user->isApprovedReseller();
 
         $subtotal = 0.0;
@@ -109,6 +117,13 @@ class CheckoutController extends Controller
     public function checkout(CheckoutRequest $request): JsonResponse
     {
         $user = $request->user();
+
+        if ($user && $user->isAdmin()) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Akun Administrator tidak diperuntukkan untuk melakukan pembelian/checkout. Silakan gunakan akun Pelanggan (Customer) atau Reseller.',
+            ], 403);
+        }
 
         try {
             $order = $this->checkoutService->processCheckout(

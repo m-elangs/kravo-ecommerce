@@ -18,10 +18,12 @@ import {
   BarChart3,
   Settings,
   X,
-  ExternalLink
+  ExternalLink,
+  UserCheck,
+  MessageSquare
 } from 'lucide-react'
 
-// All 16 Admin Dashboard Menus as requested
+// All Admin Dashboard Menus as requested
 const navigationItems = [
   { name: '1. Dashboard', path: '/admin', icon: LayoutDashboard },
   { name: '2. Products', path: '/admin/products', icon: Package },
@@ -39,6 +41,8 @@ const navigationItems = [
   { name: '14. Reviews', path: '/admin/reviews', icon: Star },
   { name: '15. Reports', path: '/admin/reports', icon: BarChart3 },
   { name: '16. Settings', path: '/admin/settings', icon: Settings },
+  { name: '17. Semua Pengguna', path: '/admin/users', icon: UserCheck },
+  { name: '18. Layanan Bantuan', path: '/admin/support', icon: MessageSquare },
 ]
 
 export default function AdminSidebar({ isOpen, setIsOpen }) {

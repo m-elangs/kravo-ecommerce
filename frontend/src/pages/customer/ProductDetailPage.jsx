@@ -4,12 +4,13 @@ import { Star, ShieldCheck, ShoppingBag, Heart, Store, ArrowRight, Loader2, Chec
 import { productApi } from '../../api/productApi'
 import { useCart } from '../../contexts/CartContext'
 import { useAuth } from '../../contexts/AuthContext'
+import { getProductImageUrl } from '../../utils/imageUrl'
 
 export default function ProductDetailPage() {
   const { slug } = useParams()
   const navigate = useNavigate()
   const { addToCart } = useCart()
-  const { user, isApprovedReseller } = useAuth()
+  const { user, isReseller, isApprovedReseller } = useAuth()
 
   const [product, setProduct] = useState(null)
   const [loading, setLoading] = useState(true)
@@ -19,20 +20,36 @@ export default function ProductDetailPage() {
 
   useEffect(() => {
     setLoading(true)
-    productApi.getProduct(slug)
-      .then(res => {
+    const fetchProduct = async () => {
+      try {
+        const res = await productApi.getProduct(slug)
         if (res.success && res.data) {
           setProduct(res.data)
           if (res.data.variants && res.data.variants.length > 0) {
             setSelectedVariant(res.data.variants[0])
             setQuantity(res.data.variants[0].minimum_order_quantity > 1 && isApprovedReseller ? res.data.variants[0].minimum_order_quantity : 1)
           }
+          return
         }
-      })
-      .catch(() => {
-        // Fallback for sample links
-      })
-      .finally(() => setLoading(false))
+      } catch (err) {
+        // Fallback for sample slugs like sample-1 or truffle-cassava
+        try {
+          const listRes = await productApi.getProducts({ per_page: 8 })
+          const list = listRes.data || []
+          if (list.length > 0) {
+            const matched = list.find(p => p.slug.includes(slug) || slug.includes(p.slug)) || list[0]
+            setProduct(matched)
+            if (matched.variants && matched.variants.length > 0) {
+              setSelectedVariant(matched.variants[0])
+              setQuantity(matched.variants[0].minimum_order_quantity > 1 && isApprovedReseller ? matched.variants[0].minimum_order_quantity : 1)
+            }
+          }
+        } catch { }
+      } finally {
+        setLoading(false)
+      }
+    }
+    fetchProduct()
   }, [slug, isApprovedReseller])
 
   const handleVariantChange = (variant) => {
@@ -43,13 +60,20 @@ export default function ProductDetailPage() {
   }
 
   const handleAddToCart = async () => {
-    if (!selectedVariant) return
+    if (!selectedVariant) {
+      alert('Silakan pilih varian produk terlebih dahulu.')
+      return
+    }
     setAdding(true)
     try {
-      await addToCart(selectedVariant.id, quantity)
-      alert(`Berhasil menambahkan ${quantity} pcs ${product.name} ke keranjang!`)
+      const res = await addToCart(selectedVariant.id, quantity, selectedVariant)
+      if (res && res.success !== false) {
+        alert(`Berhasil menambahkan ${res.addedQuantity || quantity} pcs ${product.name} (${selectedVariant.name}) ke keranjang belanja!`)
+      } else {
+        alert(res?.message || 'Gagal menambahkan ke keranjang.')
+      }
     } catch (e) {
-      alert('Gagal menambahkan ke keranjang.')
+      alert(e?.message || (typeof e === 'string' ? e : 'Gagal menambahkan ke keranjang.'))
     } finally {
       setAdding(false)
     }
@@ -57,8 +81,12 @@ export default function ProductDetailPage() {
 
   const handleBuyNow = async () => {
     if (!selectedVariant) return
-    await addToCart(selectedVariant.id, quantity)
-    navigate('/checkout')
+    try {
+      await addToCart(selectedVariant.id, quantity, selectedVariant)
+      navigate('/checkout')
+    } catch (e) {
+      alert(e?.message || 'Gagal memproses pembelian.')
+    }
   }
 
   if (loading) {
@@ -83,19 +111,38 @@ export default function ProductDetailPage() {
   }
 
   const activeBatch = selectedVariant?.active_batches?.[0]
-  const currentStock = selectedVariant?.inventory?.available_stock || 0
+  const currentStock = selectedVariant?.inventory ? Number(selectedVariant.inventory.available_stock) : 0
   const isOutOfStock = currentStock <= 0
+  const moq = selectedVariant?.minimum_order_quantity || 1
+  const isMoqExceeded = isReseller && currentStock < moq
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 space-y-12">
       {/* Product Main View */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-start">
         {/* Left: Product Showcase */}
-        <div className="bg-white rounded-3xl p-12 border border-kravo-creamBorder flex flex-col items-center justify-center relative shadow-sm">
-          <div className="text-9xl select-none py-12 animate-pulse">
-            {product.category?.icon || '🥔'}
+        <div className="bg-white rounded-3xl p-8 border border-kravo-creamBorder flex flex-col items-center justify-center relative shadow-sm overflow-hidden">
+          <div className="w-full h-80 sm:h-96 flex items-center justify-center relative rounded-2xl overflow-hidden bg-slate-50">
+            {getProductImageUrl(product) ? (
+              <img
+                src={getProductImageUrl(product)}
+                alt={product.name}
+                className="w-full h-full object-cover rounded-2xl shadow-sm"
+                onError={(e) => {
+                  e.target.onerror = null
+                  e.target.style.display = 'none'
+                  if (e.target.nextSibling) e.target.nextSibling.style.display = 'flex'
+                }}
+              />
+            ) : null}
+            <div
+              className="text-9xl select-none animate-pulse"
+              style={{ display: getProductImageUrl(product) ? 'none' : 'flex' }}
+            >
+              {product.category?.icon || '🥔'}
+            </div>
           </div>
-          <div className="absolute top-6 left-6 px-3 py-1 rounded-full bg-kravo-orange text-white text-xs font-black uppercase">
+          <div className="absolute top-6 left-6 px-3 py-1 rounded-full bg-kravo-orange text-white text-xs font-black uppercase shadow-sm">
             {product.category?.name}
           </div>
 
@@ -121,7 +168,7 @@ export default function ProductDetailPage() {
               {product.name}
             </h1>
             <p className="text-xs text-slate-500 mt-1">{product.tagline}</p>
-            
+
             <div className="flex items-center gap-3 mt-3">
               <div className="flex items-center gap-1 text-amber-500 text-sm font-bold">
                 <Star className="w-4 h-4 fill-amber-500" /> 4.9
@@ -129,8 +176,13 @@ export default function ProductDetailPage() {
               <span className="text-slate-300">|</span>
               <span className="text-xs text-slate-500 font-semibold">Standar Pangan Halal & FEFO</span>
               <span className="text-slate-300">|</span>
-              <span className={`text-xs font-bold ${isOutOfStock ? 'text-rose-600' : 'text-emerald-600'}`}>
-                {isOutOfStock ? 'Stok Habis' : `Tersedia (${currentStock} pcs)`}
+              <span className={`px-2.5 py-1 rounded-full text-xs font-black flex items-center gap-1 ${isOutOfStock
+                ? 'bg-rose-100 text-rose-700'
+                : currentStock <= 20
+                  ? 'bg-amber-100 text-amber-800'
+                  : 'bg-emerald-100 text-emerald-800'
+                }`}>
+                {isOutOfStock ? '❌ Stok Habis (0 pcs)' : currentStock <= 20 ? `⚠️ Sisa ${currentStock} pcs` : `✓ Stok: ${currentStock} pcs`}
               </span>
             </div>
           </div>
@@ -139,22 +191,34 @@ export default function ProductDetailPage() {
           <div className="bg-white p-6 rounded-2xl border border-kravo-creamBorder space-y-1">
             <div className="text-xs text-slate-400 font-semibold">Harga Satuan Retail Konsumen</div>
             <div className="text-3xl font-black text-kravo-dark">
-              Rp {selectedVariant ? Number(selectedVariant.retail_price).toLocaleString('id-ID') : '0'} 
+              Rp {selectedVariant ? Number(selectedVariant.retail_price).toLocaleString('id-ID') : '0'}
               <span className="text-sm font-normal text-slate-500"> / pack</span>
             </div>
           </div>
 
           {/* B2B Wholesale Tier Matrix Banner */}
-          {selectedVariant?.price_tiers && selectedVariant.price_tiers.length > 0 && (
+          {isReseller && selectedVariant?.price_tiers && selectedVariant.price_tiers.length > 0 && (
             <div className="bg-gradient-to-br from-kravo-dark to-kravo-darkMuted text-white p-6 rounded-2xl border border-kravo-darkMuted space-y-4">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2 text-kravo-orange font-bold text-xs uppercase tracking-wider">
                   <Store className="w-4 h-4" /> Harga Grosir B2B (Reseller & Distributor)
                 </div>
-                <span className="text-[10px] bg-white/10 px-2.5 py-0.5 rounded-full text-kravo-cream/80">
-                  MOQ {selectedVariant.minimum_order_quantity} pcs
-                </span>
+                <div className="flex items-center gap-2">
+                  <span className="text-[10px] bg-white/10 px-2.5 py-0.5 rounded-full text-kravo-cream/80">
+                    MOQ {moq} pcs
+                  </span>
+                  <span className={`text-[10px] px-2.5 py-0.5 rounded-full font-bold ${isOutOfStock ? 'bg-rose-500/30 text-rose-300' : 'bg-emerald-500/20 text-emerald-300'
+                    }`}>
+                    Stok: {currentStock} pcs
+                  </span>
+                </div>
               </div>
+
+              {isMoqExceeded && !isOutOfStock && (
+                <div className="p-3 bg-amber-500/20 border border-amber-500/30 rounded-xl text-amber-200 text-xs">
+                  ⚠️ Stok gudang saat ini ({currentStock} pcs) di bawah syarat MOQ grosir ({moq} pcs). Anda tetap dapat membeli dengan harga retail sesuai stok yang tersedia.
+                </div>
+              )}
 
               <div className="grid grid-cols-3 gap-2 text-center text-xs">
                 {selectedVariant.price_tiers.map((t, idx) => (
@@ -171,23 +235,38 @@ export default function ProductDetailPage() {
 
           {/* Variant Selector */}
           <div className="space-y-2">
-            <label className="text-xs font-bold text-kravo-dark uppercase tracking-wider block">
-              Pilih Ukuran / Varian Kemasan
-            </label>
+            <div className="flex items-center justify-between">
+              <label className="text-xs font-bold text-kravo-dark uppercase tracking-wider block">
+                Pilih Ukuran / Varian Kemasan
+              </label>
+              <span className="text-[11px] text-slate-500">
+                Stok Varian Dipilih: <strong className={isOutOfStock ? 'text-rose-600' : 'text-emerald-700'}>{currentStock} pcs</strong>
+              </span>
+            </div>
             <div className="flex flex-wrap gap-2">
-              {product.variants?.map(v => (
-                <button
-                  key={v.id}
-                  onClick={() => handleVariantChange(v)}
-                  className={`px-4 py-2.5 rounded-xl text-xs font-bold transition-all ${
-                    selectedVariant?.id === v.id 
-                      ? 'bg-kravo-dark text-white shadow-md' 
+              {product.variants?.map(v => {
+                const vStock = v.inventory ? Number(v.inventory.available_stock) : 0
+                return (
+                  <button
+                    key={v.id}
+                    onClick={() => handleVariantChange(v)}
+                    className={`px-4 py-2.5 rounded-xl text-xs font-bold transition-all flex items-center gap-2 cursor-pointer ${selectedVariant?.id === v.id
+                      ? 'bg-kravo-dark text-white shadow-md'
                       : 'bg-white text-kravo-dark border border-kravo-creamBorder hover:border-kravo-orange'
-                  }`}
-                >
-                  {v.name} ({v.weight_grams}g)
-                </button>
-              ))}
+                      }`}
+                  >
+                    <span>{v.name} ({v.weight_grams}g)</span>
+                    <span className={`px-1.5 py-0.5 rounded text-[10px] ${vStock <= 0
+                      ? 'bg-rose-100 text-rose-700'
+                      : selectedVariant?.id === v.id
+                        ? 'bg-white/20 text-white'
+                        : 'bg-slate-100 text-slate-600'
+                      }`}>
+                      {vStock <= 0 ? 'Habis' : `${vStock} pcs`}
+                    </span>
+                  </button>
+                )
+              })}
             </div>
           </div>
 
@@ -195,33 +274,43 @@ export default function ProductDetailPage() {
           <div className="space-y-3 pt-2">
             <div className="flex items-center gap-4">
               <div className="flex items-center border border-kravo-creamBorder rounded-xl bg-white overflow-hidden">
-                <button 
+                <button
+                  type="button"
                   onClick={() => setQuantity(Math.max(1, quantity - 1))}
-                  className="px-3.5 py-2 text-base font-bold hover:bg-slate-100"
+                  disabled={quantity <= 1 || isOutOfStock}
+                  className="px-3.5 py-2 text-base font-bold hover:bg-slate-100 disabled:opacity-30 cursor-pointer"
                 >-</button>
                 <span className="px-4 py-2 text-sm font-bold min-w-[3rem] text-center">{quantity}</span>
-                <button 
-                  onClick={() => setQuantity(quantity + 1)}
-                  className="px-3.5 py-2 text-base font-bold hover:bg-slate-100"
+                <button
+                  type="button"
+                  onClick={() => setQuantity(Math.min(currentStock, quantity + 1))}
+                  disabled={quantity >= currentStock || isOutOfStock}
+                  className="px-3.5 py-2 text-base font-bold hover:bg-slate-100 disabled:opacity-30 cursor-pointer"
                 >+</button>
               </div>
 
-              <button 
+              <button
                 onClick={handleAddToCart}
                 disabled={adding || isOutOfStock}
-                className="flex-1 py-3 px-6 rounded-xl bg-kravo-orange hover:bg-kravo-orangeHover text-white font-bold text-sm flex items-center justify-center gap-2 shadow-lg shadow-kravo-orange/30 transition-all disabled:opacity-50"
+                className="flex-1 py-3 px-6 rounded-xl bg-kravo-orange hover:bg-kravo-orangeHover text-white font-bold text-sm flex items-center justify-center gap-2 shadow-lg shadow-kravo-orange/30 transition-all disabled:opacity-50 cursor-pointer disabled:cursor-not-allowed"
               >
-                <ShoppingBag className="w-4 h-4" /> {adding ? 'Menambahkan...' : 'Tambah ke Keranjang'}
+                <ShoppingBag className="w-4 h-4" /> {adding ? 'Menambahkan...' : isOutOfStock ? 'Stok Habis' : 'Tambah ke Keranjang'}
               </button>
             </div>
 
-            <button
-              onClick={handleBuyNow}
-              disabled={isOutOfStock}
-              className="w-full py-3.5 px-6 rounded-xl bg-kravo-dark hover:bg-kravo-darkMuted text-white font-bold text-sm flex items-center justify-center gap-2 transition-all disabled:opacity-50"
-            >
-              Beli Sekarang via Checkout
-            </button>
+            {isOutOfStock ? (
+              <div className="p-3 bg-rose-50 border border-rose-200 text-rose-700 rounded-xl text-xs font-semibold text-center">
+                Mohon maaf, varian snack ini sedang kehabisan stok gudang. Silakan pilih varian lain atau hubungi admin.
+              </div>
+            ) : (
+              <button
+                onClick={handleBuyNow}
+                disabled={isOutOfStock}
+                className="w-full py-3.5 px-6 rounded-xl bg-kravo-dark hover:bg-kravo-darkMuted text-white font-bold text-sm flex items-center justify-center gap-2 transition-all disabled:opacity-50 cursor-pointer"
+              >
+                Beli Sekarang via Checkout ({quantity} pcs)
+              </button>
+            )}
           </div>
 
           {/* Ingredients & Storage */}

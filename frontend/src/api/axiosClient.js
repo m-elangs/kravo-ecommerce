@@ -4,18 +4,27 @@ const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000
 
 const axiosClient = axios.create({
   baseURL: API_BASE_URL,
+  timeout: 15000,
   headers: {
     'Content-Type': 'application/json',
     'Accept': 'application/json',
   },
 })
 
-// Request Interceptor: Attach Sanctum Bearer Token
+// Request Interceptor: Attach Sanctum Bearer Token and persistent Session ID
 axiosClient.interceptors.request.use((config) => {
   const token = localStorage.getItem('kravo_token')
   if (token) {
     config.headers.Authorization = `Bearer ${token}`
   }
+
+  let sessionId = localStorage.getItem('kravo_session_id')
+  if (!sessionId) {
+    sessionId = 'krv_sess_' + Math.random().toString(36).substring(2) + Date.now().toString(36)
+    localStorage.setItem('kravo_session_id', sessionId)
+  }
+  config.headers['X-Session-ID'] = sessionId
+
   return config
 }, (error) => {
   return Promise.reject(error)

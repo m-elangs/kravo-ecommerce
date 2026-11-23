@@ -64,9 +64,29 @@ export function AuthProvider({ children }) {
     }
   }
 
-  const isAdmin = user?.role?.name === 'admin'
-  const isReseller = user?.role?.name === 'reseller'
-  const isApprovedReseller = isReseller && user?.reseller_profile?.status === 'approved'
+  const updateUser = (updatedUser) => {
+    setUser(updatedUser)
+    localStorage.setItem('kravo_user', JSON.stringify(updatedUser))
+  }
+
+  const refreshUser = async () => {
+    try {
+      const res = await authApi.me()
+      if (res.success && res.data?.user) {
+        setUser(res.data.user)
+        localStorage.setItem('kravo_user', JSON.stringify(res.data.user))
+        return res.data.user
+      }
+    } catch (e) {
+      // ignore
+    }
+    return null
+  }
+
+  const roleName = typeof user?.role === 'string' ? user.role : user?.role?.name
+  const isAdmin = roleName === 'admin'
+  const isReseller = roleName === 'reseller'
+  const isApprovedReseller = isReseller && (user?.reseller_profile?.status === 'approved' || user?.resellerProfile?.status === 'approved')
 
   return (
     <AuthContext.Provider value={{
@@ -76,6 +96,8 @@ export function AuthProvider({ children }) {
       login,
       register,
       logout,
+      updateUser,
+      refreshUser,
       isAdmin,
       isReseller,
       isApprovedReseller,

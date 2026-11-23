@@ -61,4 +61,37 @@ class ResellerVerificationController extends Controller
             'data' => $profile->load('user'),
         ]);
     }
+
+    public function downloadDocument(int $id)
+    {
+        $profile = ResellerProfile::findOrFail($id);
+
+        if (!$profile->document_path) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Berkas dokumen belum diunggah.',
+            ], 404);
+        }
+
+        $path = $profile->document_path;
+        $disk = 'local';
+        if (!\Illuminate\Support\Facades\Storage::disk('local')->exists($path)) {
+            if (\Illuminate\Support\Facades\Storage::disk('public')->exists($path)) {
+                $disk = 'public';
+            } else {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Berkas dokumen tidak ditemukan di server.',
+                ], 404);
+            }
+        }
+
+        $fullPath = \Illuminate\Support\Facades\Storage::disk($disk)->path($path);
+        $mime = mime_content_type($fullPath) ?: 'application/pdf';
+
+        return response()->file($fullPath, [
+            'Content-Type' => $mime,
+            'Content-Disposition' => 'inline; filename="' . basename($path) . '"',
+        ]);
+    }
 }

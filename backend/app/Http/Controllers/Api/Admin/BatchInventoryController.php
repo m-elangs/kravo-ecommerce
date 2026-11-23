@@ -87,4 +87,37 @@ class BatchInventoryController extends Controller
             'data' => $batch->load('productVariant.product'),
         ], 201);
     }
+
+    /**
+     * Update food production batch expiry date and details.
+     */
+    public function update(Request $request, $id): JsonResponse
+    {
+        $request->validate([
+            'expiry_date' => 'required|date',
+            'manufacturing_date' => 'nullable|date',
+            'status' => 'nullable|in:active,exhausted,expired',
+            'notes' => 'nullable|string',
+        ]);
+
+        $batch = ProductBatch::with(['productVariant.product'])->findOrFail($id);
+
+        $batch->expiry_date = $request->expiry_date;
+        if ($request->filled('manufacturing_date')) {
+            $batch->manufacturing_date = $request->manufacturing_date;
+        }
+        if ($request->filled('status')) {
+            $batch->status = $request->status;
+        }
+        if ($request->has('notes')) {
+            $batch->notes = $request->notes;
+        }
+        $batch->save();
+
+        return response()->json([
+            'success' => true,
+            'message' => "Data tanggal batch #{$batch->batch_number} berhasil diperbarui.",
+            'data' => $batch,
+        ]);
+    }
 }

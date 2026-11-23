@@ -39,6 +39,8 @@ import VouchersPage from '../pages/admin/VouchersPage'
 import ReviewsPage from '../pages/admin/ReviewsPage'
 import ReportsPage from '../pages/admin/ReportsPage'
 import SettingsPage from '../pages/admin/SettingsPage'
+import UsersListPage from '../pages/admin/UsersListPage'
+import SupportMessagesPage from '../pages/admin/SupportMessagesPage'
 
 export default function AppRoutes() {
   return (
@@ -81,6 +83,8 @@ export default function AppRoutes() {
         <Route path="reviews" element={<ReviewsPage />} />
         <Route path="reports" element={<ReportsPage />} />
         <Route path="settings" element={<SettingsPage />} />
+        <Route path="users" element={<UsersListPage />} />
+        <Route path="support" element={<SupportMessagesPage />} />
       </Route>
 
       {/* Fallback */}

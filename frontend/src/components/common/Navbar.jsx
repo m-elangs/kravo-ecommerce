@@ -5,7 +5,7 @@ import { useAuth } from '../../contexts/AuthContext'
 import { useCart } from '../../contexts/CartContext'
 
 export default function Navbar() {
-  const { user, logout, isAdmin, isApprovedReseller } = useAuth()
+  const { user, logout, isAdmin, isReseller, isApprovedReseller } = useAuth()
   const { totalCount } = useCart()
   const [dropdownOpen, setDropdownOpen] = useState(false)
   const navigate = useNavigate()
@@ -21,10 +21,14 @@ export default function Navbar() {
       <div className="bg-kravo-dark text-kravo-cream text-xs py-2 px-4 text-center font-medium flex items-center justify-center gap-2">
         <span className="inline-block w-2 h-2 rounded-full bg-kravo-orange animate-pulse"></span>
         <span>Snack Kemasan Gourmet Premium KRAVO — Jaminan Renyah & Batch FEFO Segar!</span>
-        <span className="hidden md:inline text-kravo-cream/60">|</span>
-        <Link to="/wholesale" className="hidden md:flex items-center gap-1 text-kravo-orange hover:underline">
-          <Store className="w-3.5 h-3.5" /> Portal Kemitraan Reseller B2B <ArrowRight className="w-3 h-3" />
-        </Link>
+        {isReseller && (
+          <>
+            <span className="hidden md:inline text-kravo-cream/60">|</span>
+            <Link to="/wholesale" className="hidden md:flex items-center gap-1 text-kravo-orange hover:underline">
+              <Store className="w-3.5 h-3.5" /> Portal Kemitraan Reseller B2B <ArrowRight className="w-3 h-3" />
+            </Link>
+          </>
+        )}
       </div>
 
       {/* Main Navbar */}
@@ -45,9 +49,11 @@ export default function Navbar() {
           <NavLink to="/" className={({ isActive }) => isActive ? "text-kravo-orange font-bold" : "hover:text-kravo-orange transition-colors"}>Home</NavLink>
           <NavLink to="/products" className={({ isActive }) => isActive ? "text-kravo-orange font-bold" : "hover:text-kravo-orange transition-colors"}>Katalog Snack</NavLink>
           <NavLink to="/categories" className={({ isActive }) => isActive ? "text-kravo-orange font-bold" : "hover:text-kravo-orange transition-colors"}>Kategori</NavLink>
-          <NavLink to="/wholesale" className={({ isActive }) => isActive ? "text-kravo-orange font-bold" : "hover:text-kravo-orange transition-colors"}>
-            Grosir / Reseller {isApprovedReseller && <span className="ml-1 text-[10px] bg-emerald-600 text-white px-2 py-0.5 rounded-full">B2B Aktif</span>}
-          </NavLink>
+          {isReseller && (
+            <NavLink to="/wholesale" className={({ isActive }) => isActive ? "text-kravo-orange font-bold" : "hover:text-kravo-orange transition-colors"}>
+              Grosir / Reseller {isApprovedReseller && <span className="ml-1 text-[10px] bg-emerald-600 text-white px-2 py-0.5 rounded-full">B2B Aktif</span>}
+            </NavLink>
+          )}
           <NavLink to="/order-tracking" className={({ isActive }) => isActive ? "text-kravo-orange font-bold" : "hover:text-kravo-orange transition-colors"}>Lacak Pesanan</NavLink>
           <NavLink to="/about" className={({ isActive }) => isActive ? "text-kravo-orange font-bold" : "hover:text-kravo-orange transition-colors"}>Tentang</NavLink>
           <NavLink to="/contact" className={({ isActive }) => isActive ? "text-kravo-orange font-bold" : "hover:text-kravo-orange transition-colors"}>Kontak</NavLink>

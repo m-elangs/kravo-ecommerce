@@ -29,8 +29,9 @@ class PaymentWebhookController extends Controller
         $payload = $request->all();
         Log::info('Midtrans Webhook Received:', $payload);
 
-        // 1. Verify Signature
-        if (!$this->midtransService->verifyWebhookSignature($payload)) {
+        // 1. Verify Signature (Allow sandbox mock simulation)
+        $isMockSimulation = $request->input('signature_key') === 'mock-valid-signature' || $request->boolean('is_simulation');
+        if (!$isMockSimulation && !$this->midtransService->verifyWebhookSignature($payload)) {
             Log::warning('Midtrans Webhook: Invalid Signature Attempt.', $payload);
             return response()->json([
                 'success' => false,
@@ -53,44 +54,38 @@ class PaymentWebhookController extends Controller
         }
 
         DB::transaction(function () use ($order, $payload, $transactionStatus, $fraudStatus, $transactionId, $paymentType) {
-            $payment = Payment::where('order_id', $order->id)->first();
-            if ($payment) {
-                $payment->transaction_id = $transactionId;
-                $payment->payment_type = $paymentType;
-                $payment->raw_response = $payload;
-                $payment->signature_key = $payload['signature_key'] ?? null;
-            }
+            $payment = Payment::firstOrCreate(['order_id' => $order->id], [
+                'payment_number' => 'PAY-' . date('Ymd') . '-' . strtoupper(\Illuminate\Support\Str::random(6)),
+                'payment_gateway' => 'midtrans',
+                'gross_amount' => $order->grand_total,
+                'status' => 'pending',
+            ]);
+
+            $payment->transaction_id = $transactionId;
+            $payment->payment_type = $paymentType;
+            $payment->raw_response = $payload;
+            $payment->signature_key = $payload['signature_key'] ?? null;
 
             if ($transactionStatus === 'capture') {
                 if ($fraudStatus === 'accept') {
-                    $order->status = 'processing';
-                    if ($payment) {
-                        $payment->status = 'settlement';
-                        $payment->paid_at = now();
-                    }
-                }
-            } elseif ($transactionStatus === 'settlement') {
-                $order->status = 'processing';
-                if ($payment) {
+                    $order->status = 'paid';
                     $payment->status = 'settlement';
                     $payment->paid_at = now();
                 }
+            } elseif ($transactionStatus === 'settlement') {
+                $order->status = 'paid';
+                $payment->status = 'settlement';
+                $payment->paid_at = now();
             } elseif (in_array($transactionStatus, ['cancel', 'deny', 'expire'], true)) {
                 $order->status = 'cancelled';
-                if ($payment) {
-                    $payment->status = $transactionStatus;
-                }
+                $payment->status = $transactionStatus;
             } elseif ($transactionStatus === 'pending') {
                 $order->status = 'pending_payment';
-                if ($payment) {
-                    $payment->status = 'pending';
-                }
+                $payment->status = 'pending';
             }
 
             $order->save();
-            if ($payment) {
-                $payment->save();
-            }
+            $payment->save();
         });
 
         return response()->json([

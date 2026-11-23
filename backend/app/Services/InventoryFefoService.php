@@ -96,12 +96,99 @@ class InventoryFefoService
             $remainingNeeded -= $takeQty;
         }
 
-        // 3. Update inventory aggregation
-        $inventory->total_physical_stock -= $requestedQty;
-        $inventory->available_stock -= $requestedQty;
+        // 3. Update inventory aggregation: kurangi stok tersedia dan alihkan ke stok reserved
+        $inventory->available_stock = max(0, $inventory->available_stock - $requestedQty);
+        $inventory->reserved_stock = ((int) $inventory->reserved_stock) + $requestedQty;
+        $inventory->total_physical_stock = $inventory->available_stock + $inventory->reserved_stock;
         $inventory->save();
 
         return $allocated;
+    }
+
+    /**
+     * Selesaikan pengiriman pesanan (status: delivered).
+     * Barang telah resmi diterima customer/reseller, sehingga stok reserved berkurang dan fisik berkurang.
+     */
+    public function fulfillDeliveredOrder(\App\Models\Order $order): void
+    {
+        $order->loadMissing('items');
+
+        foreach ($order->items as $item) {
+            $inv = Inventory::where('product_variant_id', $item->product_variant_id)
+                ->lockForUpdate()
+                ->first();
+
+            if ($inv) {
+                $qty = (int) $item->quantity;
+                $inv->reserved_stock = max(0, (int) $inv->reserved_stock - $qty);
+                $inv->total_physical_stock = max(0, (int) $inv->total_physical_stock - $qty);
+                $inv->save();
+
+                $batchId = $item->product_batch_id ?: ProductBatch::where('product_variant_id', $item->product_variant_id)->value('id');
+                if ($batchId) {
+                    StockMovement::create([
+                        'product_batch_id' => $batchId,
+                        'reference_type' => 'OrderDelivered',
+                        'reference_id' => $order->id,
+                        'movement_type' => 'dispatched',
+                        'quantity' => -$qty,
+                        'previous_stock' => $inv->reserved_stock + $qty,
+                        'current_stock' => $inv->reserved_stock,
+                        'reason' => "Pesanan #{$order->order_number} telah sampai / selesai (Delivered). Stok reserved keluar gudang.",
+                        'created_by' => auth()->id() ?? null,
+                    ]);
+                }
+            }
+        }
+    }
+
+    /**
+     * Batalkan pesanan: kembalikan stok dari reserved_stock ke available_stock.
+     */
+    public function cancelOrderReservation(\App\Models\Order $order): void
+    {
+        $order->loadMissing('items');
+
+        foreach ($order->items as $item) {
+            $qty = (int) $item->quantity;
+
+            // Revert batch quantity
+            if ($item->product_batch_id) {
+                $batch = ProductBatch::lockForUpdate()->find($item->product_batch_id);
+                if ($batch) {
+                    $prev = $batch->current_quantity;
+                    $batch->current_quantity += $qty;
+                    $batch->save();
+                }
+            }
+
+            // Revert inventory from reserved to available
+            $inv = Inventory::where('product_variant_id', $item->product_variant_id)
+                ->lockForUpdate()
+                ->first();
+
+            if ($inv) {
+                $inv->reserved_stock = max(0, (int) $inv->reserved_stock - $qty);
+                $inv->available_stock = (int) $inv->available_stock + $qty;
+                $inv->total_physical_stock = $inv->available_stock + $inv->reserved_stock;
+                $inv->save();
+
+                $batchId = $item->product_batch_id ?: ProductBatch::where('product_variant_id', $item->product_variant_id)->value('id');
+                if ($batchId) {
+                    StockMovement::create([
+                        'product_batch_id' => $batchId,
+                        'reference_type' => 'OrderCancel',
+                        'reference_id' => $order->id,
+                        'movement_type' => 'stock_in',
+                        'quantity' => $qty,
+                        'previous_stock' => $inv->available_stock - $qty,
+                        'current_stock' => $inv->available_stock,
+                        'reason' => "Pesanan #{$order->order_number} dibatalkan. Stok reserved dialihkan kembali ke stok tersedia.",
+                        'created_by' => auth()->id() ?? null,
+                    ]);
+                }
+            }
+        }
     }
 
     /**

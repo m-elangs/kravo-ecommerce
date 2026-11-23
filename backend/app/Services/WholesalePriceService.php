@@ -55,6 +55,21 @@ class WholesalePriceService
             ];
         }
 
+        // Reseller sudah memenuhi MOQ: gunakan tier grosir termurah yang terdaftar
+        $lowestTier = PriceTier::where('product_variant_id', $variant->id)
+            ->orderBy('min_quantity', 'asc')
+            ->first();
+
+        if ($lowestTier && (float) $lowestTier->unit_price > 0) {
+            $wholesalePrice = (float) $lowestTier->unit_price;
+            return [
+                'unit_price' => $wholesalePrice,
+                'is_wholesale' => true,
+                'tier_applied' => "Tier {$lowestTier->min_quantity}+ pcs",
+                'savings_per_unit' => max(0, $retailPrice - $wholesalePrice),
+            ];
+        }
+
         // Default wholesale price if no specific tier (e.g. 15% standard reseller discount)
         $defaultWholesale = round($retailPrice * 0.85, 2);
         return [

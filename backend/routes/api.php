@@ -11,6 +11,8 @@ use App\Http\Controllers\Api\CheckoutController;
 use App\Http\Controllers\Api\OrderController;
 use App\Http\Controllers\Api\ResellerController;
 use App\Http\Controllers\Api\PaymentWebhookController;
+use App\Http\Controllers\Api\ContactController;
+use App\Http\Controllers\Api\ReviewController;
 
 // Admin Controllers
 use App\Http\Controllers\Api\Admin\DashboardController as AdminDashboardController;
@@ -25,6 +27,10 @@ use App\Http\Controllers\Api\Admin\ShipmentAdminController as AdminShipmentContr
 use App\Http\Controllers\Api\Admin\VoucherAdminController as AdminVoucherController;
 use App\Http\Controllers\Api\Admin\ReviewAdminController as AdminReviewController;
 use App\Http\Controllers\Api\Admin\InventoryAdminController as AdminInventoryController;
+use App\Http\Controllers\Api\Admin\UserAdminController as AdminUserController;
+use App\Http\Controllers\Api\Admin\CategoryAdminController as AdminCategoryController;
+use App\Http\Controllers\Api\Admin\SupportAdminController as AdminSupportController;
+use App\Http\Controllers\Api\Admin\ReportAdminController as AdminReportController;
 
 /*
 |--------------------------------------------------------------------------
@@ -52,19 +58,27 @@ Route::prefix('v1')->group(function () {
     Route::put('/cart/items/{id}', [CartController::class, 'updateItem']);
     Route::delete('/cart/items/{id}', [CartController::class, 'removeItem']);
 
-    // 5. Payment Webhook (Midtrans notification callback)
+    // 5. Payment Webhook & Direct Confirmation
     Route::post('/payments/midtrans-webhook', [PaymentWebhookController::class, 'handle']);
+    Route::post('/orders/{orderNumber}/confirm-payment', [OrderController::class, 'confirmPayment']);
+
+    // 5b. Contact & Support Message (Public)
+    Route::post('/contact', [ContactController::class, 'store']);
 
     // 6. Protected Customer & Reseller Routes
     Route::middleware('auth:sanctum')->group(function () {
         Route::get('/auth/me', [AuthController::class, 'me']);
         Route::post('/auth/logout', [AuthController::class, 'logout']);
+        Route::post('/auth/address', [AuthController::class, 'updateAddress']);
 
         // Checkout & Orders
         Route::post('/checkout/preview', [CheckoutController::class, 'preview']);
         Route::post('/checkout', [CheckoutController::class, 'checkout']);
         Route::get('/orders', [OrderController::class, 'index']);
         Route::get('/orders/{orderNumber}', [OrderController::class, 'show']);
+
+        // Customer Product Reviews
+        Route::post('/reviews', [ReviewController::class, 'store']);
 
         // Reseller Portal
         Route::post('/reseller/register', [ResellerController::class, 'register']);
@@ -80,11 +94,19 @@ Route::prefix('v1')->group(function () {
     Route::prefix('admin')->middleware(['auth:sanctum', 'role:admin'])->group(function () {
         Route::get('/dashboard', [AdminDashboardController::class, 'index']);
         
-        // Products & Inventory
+        // Products & Variants CRUD
         Route::get('/products', [AdminProductController::class, 'index']);
         Route::post('/products', [AdminProductController::class, 'store']);
+        Route::put('/products/{id}', [AdminProductController::class, 'update']);
+        Route::delete('/products/{id}', [AdminProductController::class, 'destroy']);
+        Route::post('/products/{id}/image', [AdminProductController::class, 'uploadImage']);
+        Route::delete('/products/{id}/image', [AdminProductController::class, 'deleteImage']);
+        Route::post('/products/{productId}/variants', [AdminProductController::class, 'storeVariant']);
+        Route::put('/variants/{id}', [AdminProductController::class, 'updateVariant']);
+        Route::delete('/variants/{id}', [AdminProductController::class, 'deleteVariant']);
         Route::get('/batches', [AdminBatchController::class, 'index']);
         Route::post('/batches', [AdminBatchController::class, 'store']);
+        Route::put('/batches/{id}', [AdminBatchController::class, 'update']);
 
         // Orders & Shipments
         Route::get('/orders', [AdminOrderController::class, 'index']);
@@ -94,11 +116,18 @@ Route::prefix('v1')->group(function () {
         // Reseller Verifications
         Route::get('/resellers', [AdminResellerController::class, 'index']);
         Route::put('/resellers/{id}/verify', [AdminResellerController::class, 'verify']);
+        Route::get('/resellers/{id}/document', [AdminResellerController::class, 'downloadDocument']);
 
         // Wholesale Pricing & MOQ
         Route::get('/wholesale-pricing', [AdminWholesaleController::class, 'index']);
         Route::post('/wholesale-pricing', [AdminWholesaleController::class, 'store']);
+        Route::put('/wholesale-pricing/tier/{id}', [AdminWholesaleController::class, 'update']);
+        Route::delete('/wholesale-pricing/tier/{id}', [AdminWholesaleController::class, 'destroy']);
         Route::put('/wholesale-pricing/moq/{variantId}', [AdminWholesaleController::class, 'updateMoq']);
+
+        // Reports & Laporan Keuangan / Mutasi Stok
+        Route::get('/reports/sales', [AdminReportController::class, 'sales']);
+        Route::get('/reports/stock-movements', [AdminReportController::class, 'stockMovements']);
 
         // Customers
         Route::get('/customers', [AdminCustomerController::class, 'index']);
@@ -123,6 +152,25 @@ Route::prefix('v1')->group(function () {
 
         // Inventory & Stock Movements
         Route::get('/inventory', [AdminInventoryController::class, 'index']);
+        Route::put('/inventory/{id}', [AdminInventoryController::class, 'update']);
+        Route::post('/inventory/{id}/release-reserved', [AdminInventoryController::class, 'releaseReserved']);
         Route::get('/inventory/movements', [AdminInventoryController::class, 'movements']);
+
+        // Users Management
+        Route::get('/users', [AdminUserController::class, 'index']);
+        Route::get('/users/{id}', [AdminUserController::class, 'show']);
+        Route::delete('/users/{id}', [AdminUserController::class, 'destroy']);
+
+        // Categories CRUD
+        Route::get('/categories', [AdminCategoryController::class, 'index']);
+        Route::post('/categories', [AdminCategoryController::class, 'store']);
+        Route::put('/categories/{id}', [AdminCategoryController::class, 'update']);
+        Route::post('/categories/{id}/image', [AdminCategoryController::class, 'uploadImage']);
+        Route::delete('/categories/{id}', [AdminCategoryController::class, 'destroy']);
+
+        // Support & Layanan Bantuan
+        Route::get('/support', [AdminSupportController::class, 'index']);
+        Route::put('/support/{id}/status', [AdminSupportController::class, 'updateStatus']);
+        Route::delete('/support/{id}', [AdminSupportController::class, 'destroy']);
     });
 });

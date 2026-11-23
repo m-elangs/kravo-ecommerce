@@ -3,6 +3,8 @@ import { Link, useSearchParams } from 'react-router-dom'
 import { Filter, Star, Search, ShoppingBag, Loader2 } from 'lucide-react'
 import { productApi } from '../../api/productApi'
 import { useCart } from '../../contexts/CartContext'
+import { useAuth } from '../../contexts/AuthContext'
+import { getProductImageUrl } from '../../utils/imageUrl'
 
 export default function CatalogPage() {
   const [searchParams] = useSearchParams()
@@ -14,15 +16,16 @@ export default function CatalogPage() {
   const [selectedCat, setSelectedCat] = useState(initialCategory)
   const [search, setSearch] = useState('')
   const [addingId, setAddingId] = useState(null)
-  
+
   const { addToCart } = useCart()
+  const { isReseller } = useAuth()
 
   useEffect(() => {
     productApi.getCategories()
       .then(res => {
         if (res.success) setCategories(res.data)
       })
-      .catch(() => {})
+      .catch(() => { })
   }, [])
 
   useEffect(() => {
@@ -35,19 +38,23 @@ export default function CatalogPage() {
       .then(res => {
         if (res.success) setProducts(res.data)
       })
-      .catch(() => {})
+      .catch(() => { })
       .finally(() => setLoading(false))
   }, [selectedCat, search])
 
   const handleQuickAdd = async (product) => {
     if (!product.variants || product.variants.length === 0) return
-    const variantId = product.variants[0].id
+    const variant = product.variants[0]
     setAddingId(product.id)
     try {
-      await addToCart(variantId, 1)
-      alert(`Berhasil menambahkan ${product.name} ke keranjang!`)
+      const res = await addToCart(variant.id, 1, variant)
+      if (res && res.success !== false) {
+        alert(`Berhasil menambahkan ${res.addedQuantity || 1} pcs ${product.name} (${variant.name}) ke keranjang!`)
+      } else {
+        alert(res?.message || 'Gagal menambahkan ke keranjang.')
+      }
     } catch (e) {
-      alert('Gagal menambahkan ke keranjang.')
+      alert(e?.message || 'Gagal menambahkan ke keranjang.')
     } finally {
       setAddingId(null)
     }
@@ -85,11 +92,10 @@ export default function CatalogPage() {
             <div className="space-y-1.5 text-xs font-semibold">
               <button
                 onClick={() => setSelectedCat('all')}
-                className={`w-full text-left px-3 py-2.5 rounded-xl transition-colors ${
-                  selectedCat === 'all' 
-                    ? 'bg-kravo-dark text-white font-bold' 
-                    : 'text-slate-600 hover:bg-kravo-cream'
-                }`}
+                className={`w-full text-left px-3 py-2.5 rounded-xl transition-colors ${selectedCat === 'all'
+                  ? 'bg-kravo-dark text-white font-bold'
+                  : 'text-slate-600 hover:bg-kravo-cream'
+                  }`}
               >
                 Semua Kategori
               </button>
@@ -97,11 +103,10 @@ export default function CatalogPage() {
                 <button
                   key={cat.id}
                   onClick={() => setSelectedCat(cat.slug)}
-                  className={`w-full text-left px-3 py-2.5 rounded-xl transition-colors flex items-center justify-between ${
-                    selectedCat === cat.slug 
-                      ? 'bg-kravo-dark text-white font-bold' 
-                      : 'text-slate-600 hover:bg-kravo-cream'
-                  }`}
+                  className={`w-full text-left px-3 py-2.5 rounded-xl transition-colors flex items-center justify-between ${selectedCat === cat.slug
+                    ? 'bg-kravo-dark text-white font-bold'
+                    : 'text-slate-600 hover:bg-kravo-cream'
+                    }`}
                 >
                   <span>{cat.name}</span>
                   <span className="text-[10px] text-slate-400 font-normal">{cat.products_count}</span>
@@ -130,15 +135,53 @@ export default function CatalogPage() {
                 const defaultVariant = p.variants?.[0]
                 const retailPrice = defaultVariant ? defaultVariant.retail_price : 0
                 const wholesaleTier = defaultVariant?.price_tiers?.[0]
+                const variantStock = defaultVariant?.inventory ? Number(defaultVariant.inventory.available_stock) : 0
+                const totalStock = p.variants?.reduce((sum, v) => sum + (v.inventory ? Number(v.inventory.available_stock) : 0), 0) ?? 0
+                const isOutOfStock = totalStock <= 0
+                const moq = defaultVariant?.minimum_order_quantity || 1
 
                 return (
-                  <div 
+                  <div
                     key={p.id}
-                    className="bg-white rounded-3xl p-5 border border-kravo-creamBorder shadow-sm hover:shadow-xl transition-all flex flex-col justify-between group"
+                    className="bg-white rounded-3xl p-5 border border-kravo-creamBorder shadow-sm hover:shadow-xl transition-all flex flex-col justify-between group relative"
                   >
                     <div>
-                      <div className="h-36 flex items-center justify-center text-6xl group-hover:scale-110 transition-transform">
-                        {p.category?.icon || '🍿'}
+                      <div className="h-44 w-full mb-3 rounded-2xl overflow-hidden bg-slate-50 flex items-center justify-center relative">
+                        {/* Real-time Stock Badge */}
+                        <div className="absolute top-2.5 right-2.5 z-10">
+                          {isOutOfStock ? (
+                            <span className="px-2.5 py-1 rounded-xl bg-rose-600 text-white text-[10px] font-black tracking-wide shadow-md flex items-center gap-1">
+                              Stok Habis
+                            </span>
+                          ) : totalStock <= 20 ? (
+                            <span className="px-2.5 py-1 rounded-xl bg-amber-500 text-white text-[10px] font-black tracking-wide shadow-md flex items-center gap-1">
+                              Sisa {totalStock} pcs
+                            </span>
+                          ) : (
+                            <span className="px-2.5 py-1 rounded-xl bg-emerald-600 text-white text-[10px] font-black tracking-wide shadow-md flex items-center gap-1">
+                              Stok: {totalStock} pcs
+                            </span>
+                          )}
+                        </div>
+
+                        {getProductImageUrl(p) ? (
+                          <img
+                            src={getProductImageUrl(p)}
+                            alt={p.name}
+                            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                            onError={(e) => {
+                              e.target.onerror = null
+                              e.target.style.display = 'none'
+                              if (e.target.nextSibling) e.target.nextSibling.style.display = 'flex'
+                            }}
+                          />
+                        ) : null}
+                        <div
+                          className="w-full h-full flex items-center justify-center text-6xl group-hover:scale-110 transition-transform"
+                          style={{ display: getProductImageUrl(p) ? 'none' : 'flex' }}
+                        >
+                          {p.category?.icon || '🍿'}
+                        </div>
                       </div>
                       <div className="text-[10px] font-bold text-kravo-orange uppercase tracking-wider mb-1">
                         {p.category?.name}
@@ -157,7 +200,7 @@ export default function CatalogPage() {
                             Rp {Number(retailPrice).toLocaleString('id-ID')}
                           </span>
                         </div>
-                        {wholesaleTier && (
+                        {isReseller && wholesaleTier && (
                           <div className="text-right">
                             <span className="text-[10px] text-emerald-600 font-bold block">Grosir mulai</span>
                             <span className="text-xs font-bold text-emerald-700">
@@ -166,6 +209,14 @@ export default function CatalogPage() {
                           </div>
                         )}
                       </div>
+
+                      {/* Reseller B2B Stock & MOQ Snapshot */}
+                      {isReseller && (
+                        <div className="px-2.5 py-1.5 rounded-xl bg-slate-50 border border-slate-200 text-[11px] flex items-center justify-between text-slate-600">
+                          <span>MOQ: <strong className="text-slate-900">{moq} pcs</strong></span>
+                          <span>Stok Gudang: <strong className={isOutOfStock ? 'text-rose-600' : 'text-emerald-700'}>{totalStock} pcs</strong></span>
+                        </div>
+                      )}
 
                       <div className="flex gap-2">
                         <Link
@@ -176,9 +227,13 @@ export default function CatalogPage() {
                         </Link>
                         <button
                           onClick={() => handleQuickAdd(p)}
-                          disabled={addingId === p.id}
-                          className="p-2 rounded-xl bg-kravo-orange hover:bg-kravo-orangeHover text-white text-xs font-bold transition-colors shadow-sm"
-                          title="Tambah ke Keranjang"
+                          disabled={addingId === p.id || isOutOfStock}
+                          className={`p-2 rounded-xl text-xs font-bold transition-colors shadow-sm ${
+                            isOutOfStock
+                              ? 'bg-slate-200 text-slate-400 cursor-not-allowed'
+                              : 'bg-kravo-orange hover:bg-kravo-orangeHover text-white cursor-pointer'
+                          }`}
+                          title={isOutOfStock ? 'Stok Habis' : 'Tambah ke Keranjang'}
                         >
                           <ShoppingBag className="w-4 h-4" />
                         </button>

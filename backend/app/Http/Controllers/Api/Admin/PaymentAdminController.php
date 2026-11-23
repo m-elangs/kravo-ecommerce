@@ -31,11 +31,11 @@ class PaymentAdminController extends Controller
                 return [
                     'id'             => $payment->id,
                     'order_number'   => $payment->order->order_number ?? '-',
-                    'customer_name'  => $payment->order->user->name ?? '-',
-                    'amount'         => $payment->amount,
-                    'method'         => $payment->payment_method,
-                    'status'         => $payment->status,
-                    'midtrans_id'    => $payment->midtrans_transaction_id,
+                    'customer_name'  => $payment->order->user->name ?? 'Customer',
+                    'amount'         => (float) ($payment->gross_amount ?? 0),
+                    'method'         => strtoupper($payment->payment_type ?? $payment->payment_gateway ?? 'Midtrans'),
+                    'status'         => $payment->status === 'settlement' ? 'paid' : $payment->status,
+                    'midtrans_id'    => $payment->transaction_id ?? $payment->payment_number,
                     'paid_at'        => $payment->paid_at ? $payment->paid_at->format('d M Y H:i') : null,
                     'created_at'     => $payment->created_at->format('d M Y H:i'),
                 ];

@@ -14,9 +14,9 @@ export default function CustomersListPage() {
   const load = async (s = search, p = page) => {
     setLoading(true)
     try {
-      const { data } = await axiosClient.get('/admin/customers', { params: { search: s, page: p } })
-      setCustomers(data.data || [])
-      setMeta(data.meta || null)
+      const res = await axiosClient.get('/admin/customers', { params: { search: s, page: p } })
+      setCustomers(res.data || [])
+      setMeta(res.meta || null)
     } catch { setCustomers([]) } finally { setLoading(false) }
   }
 

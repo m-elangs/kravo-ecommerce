@@ -45,14 +45,14 @@ export default function OrderTrackingPage() {
         </p>
 
         <form onSubmit={(e) => { e.preventDefault(); handleTrack(); }} className="flex gap-2 pt-4">
-          <input 
+          <input
             type="text"
             value={orderQuery}
             onChange={(e) => setOrderQuery(e.target.value)}
             placeholder="Masukkan nomor pesanan..."
             className="flex-1 px-4 py-3 rounded-xl bg-white border border-kravo-creamBorder text-xs sm:text-sm font-mono font-bold focus:outline-none focus:border-kravo-orange shadow-sm"
           />
-          <button 
+          <button
             type="submit"
             disabled={loading}
             className="px-6 py-3 rounded-xl bg-kravo-dark hover:bg-kravo-orange text-white text-xs sm:text-sm font-bold transition-colors shadow-sm disabled:opacity-50"
@@ -81,13 +81,12 @@ export default function OrderTrackingPage() {
               </span>
             </div>
             <div className="text-right">
-              <span className={`px-3 py-1 rounded-full text-xs font-bold uppercase ${
-                trackingData.status === 'delivered' 
-                  ? 'bg-emerald-100 text-emerald-800' 
-                  : trackingData.status === 'shipped' || trackingData.status === 'processing'
+              <span className={`px-3 py-1 rounded-full text-xs font-bold uppercase ${trackingData.status === 'delivered'
+                ? 'bg-emerald-100 text-emerald-800'
+                : trackingData.status === 'shipped' || trackingData.status === 'processing'
                   ? 'bg-amber-100 text-amber-800'
                   : 'bg-slate-100 text-slate-800'
-              }`}>
+                }`}>
                 {trackingData.status?.replace('_', ' ')}
               </span>
             </div>
@@ -104,9 +103,8 @@ export default function OrderTrackingPage() {
             </div>
 
             <div className="space-y-2">
-              <div className={`w-10 h-10 rounded-full flex items-center justify-center mx-auto ${
-                ['processing', 'shipped', 'delivered'].includes(trackingData.status) ? 'bg-emerald-600 text-white' : 'bg-slate-100 text-slate-400'
-              }`}>
+              <div className={`w-10 h-10 rounded-full flex items-center justify-center mx-auto ${['processing', 'shipped', 'delivered'].includes(trackingData.status) ? 'bg-emerald-600 text-white' : 'bg-slate-100 text-slate-400'
+                }`}>
                 <PackageCheck className="w-5 h-5" />
               </div>
               <div className="font-bold text-xs text-kravo-dark">Alokasi Batch FEFO</div>
@@ -114,23 +112,21 @@ export default function OrderTrackingPage() {
             </div>
 
             <div className="space-y-2">
-              <div className={`w-10 h-10 rounded-full flex items-center justify-center mx-auto ${
-                ['shipped', 'delivered'].includes(trackingData.status) ? 'bg-kravo-orange text-white animate-bounce' : 'bg-slate-100 text-slate-400'
-              }`}>
+              <div className={`w-10 h-10 rounded-full flex items-center justify-center mx-auto ${['shipped', 'delivered'].includes(trackingData.status) ? 'bg-kravo-orange text-white animate-bounce' : 'bg-slate-100 text-slate-400'
+                }`}>
                 <Truck className="w-5 h-5" />
               </div>
               <div className="font-bold text-xs text-kravo-orange">Dalam Pengiriman</div>
               <div className="text-[10px] text-slate-400 font-medium">
-                {trackingData.shipment?.tracking_number 
-                  ? `Resi: ${trackingData.shipment.tracking_number}` 
+                {trackingData.shipment?.tracking_number
+                  ? `Resi: ${trackingData.shipment.tracking_number}`
                   : `Kurir: ${trackingData.shipment?.courier_name || 'JNE'}`}
               </div>
             </div>
 
             <div className="space-y-2">
-              <div className={`w-10 h-10 rounded-full flex items-center justify-center mx-auto ${
-                trackingData.status === 'delivered' ? 'bg-emerald-600 text-white' : 'bg-slate-100 text-slate-400'
-              }`}>
+              <div className={`w-10 h-10 rounded-full flex items-center justify-center mx-auto ${trackingData.status === 'delivered' ? 'bg-emerald-600 text-white' : 'bg-slate-100 text-slate-400'
+                }`}>
                 <Clock className="w-5 h-5" />
               </div>
               <div className="font-bold text-xs text-slate-400">Tiba di Tujuan</div>

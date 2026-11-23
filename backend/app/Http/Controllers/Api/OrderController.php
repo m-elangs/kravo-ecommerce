@@ -4,8 +4,11 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Models\Order;
+use App\Models\Payment;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Str;
 
 class OrderController extends Controller
 {
@@ -13,10 +16,23 @@ class OrderController extends Controller
     {
         $user = $request->user();
 
-        $orders = Order::where('user_id', $user->id)
-            ->with(['items', 'payment', 'shipment'])
-            ->latest()
-            ->paginate(10);
+        $query = Order::where('user_id', $user->id)
+            ->with([
+                'items.productVariant.product.category',
+                'items.productVariant.product.primaryImage',
+                'items.productVariant.inventory',
+                'payment',
+                'shipment',
+                'reviews'
+            ])
+            ->latest();
+
+        if ($request->filled('status')) {
+            $query->where('status', $request->status);
+        }
+
+        $perPage = $request->input('per_page', 25);
+        $orders = $query->paginate($perPage);
 
         return response()->json([
             'success' => true,
@@ -65,6 +81,52 @@ class OrderController extends Controller
                 'shipment' => $order->shipment,
                 'created_at' => $order->created_at,
             ]
+        ]);
+    }
+
+    /**
+     * Confirm/simulate payment success and update order state to paid/processing.
+     */
+    public function confirmPayment(Request $request, string $orderNumber): JsonResponse
+    {
+        $order = Order::where('order_number', $orderNumber)->firstOrFail();
+
+        DB::transaction(function () use ($order, $request) {
+            $paymentType = $request->input('payment_type', 'qris_midtrans');
+            $transactionId = $request->input('transaction_id', 'TRX-MID-' . strtoupper(Str::random(10)));
+
+            $order->status = 'paid';
+            $order->save();
+
+            $payment = Payment::firstOrCreate(['order_id' => $order->id], [
+                'payment_number' => 'PAY-' . date('Ymd') . '-' . strtoupper(Str::random(6)),
+                'payment_gateway' => 'midtrans',
+                'gross_amount' => $order->grand_total,
+                'status' => 'settlement',
+            ]);
+
+            $payment->status = 'settlement';
+            $payment->payment_type = $paymentType;
+            $payment->transaction_id = $transactionId;
+            $payment->paid_at = now();
+            $payment->raw_response = [
+                'simulation' => true,
+                'confirmed_at' => now()->toIso8601String(),
+                'method' => $paymentType,
+            ];
+            $payment->save();
+
+            // Keep shipment ready in pending_packing status for kitchen/warehouse
+            if ($order->shipment && $order->shipment->shipping_status !== 'pending_packing') {
+                $order->shipment->shipping_status = 'pending_packing';
+                $order->shipment->save();
+            }
+        });
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Pembayaran pesanan berhasil diverifikasi! Pesanan kini berstatus PAID.',
+            'data' => $order->fresh(['payment', 'items', 'shipment']),
         ]);
     }
 }

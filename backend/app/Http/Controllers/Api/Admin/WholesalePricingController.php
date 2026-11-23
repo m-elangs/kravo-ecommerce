@@ -27,9 +27,14 @@ class WholesalePricingController extends Controller
     {
         $request->validate([
             'product_variant_id' => 'required|exists:product_variants,id',
-            'min_quantity' => 'required|integer|min:2',
+            'min_quantity' => 'required|integer|min:1',
             'unit_price' => 'required|numeric|min:0',
         ]);
+
+        $variant = ProductVariant::findOrFail($request->product_variant_id);
+        $discount = $variant->retail_price > 0
+            ? round((($variant->retail_price - $request->unit_price) / $variant->retail_price) * 100, 2)
+            : 0;
 
         $tier = PriceTier::updateOrCreate(
             [
@@ -38,6 +43,7 @@ class WholesalePricingController extends Controller
             ],
             [
                 'unit_price' => $request->unit_price,
+                'discount_percentage' => max(0, $discount),
             ]
         );
 
@@ -46,6 +52,47 @@ class WholesalePricingController extends Controller
             'message' => 'Tier harga grosir berhasil disimpan.',
             'data' => $tier->load('productVariant.product'),
         ], 201);
+    }
+
+    public function update(Request $request, int $id): JsonResponse
+    {
+        $tier = PriceTier::with('productVariant')->findOrFail($id);
+
+        $request->validate([
+            'unit_price' => 'required|numeric|min:0',
+            'min_quantity' => 'nullable|integer|min:1',
+        ]);
+
+        $variant = $tier->productVariant;
+        $unitPrice = (float) $request->unit_price;
+        $minQuantity = (int) ($request->min_quantity ?? $tier->min_quantity);
+
+        $discount = ($variant && $variant->retail_price > 0)
+            ? round((($variant->retail_price - $unitPrice) / $variant->retail_price) * 100, 2)
+            : 0;
+
+        $tier->update([
+            'unit_price' => $unitPrice,
+            'min_quantity' => $minQuantity,
+            'discount_percentage' => max(0, $discount),
+        ]);
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Harga grosir berhasil diperbarui.',
+            'data' => $tier->load('productVariant.product'),
+        ]);
+    }
+
+    public function destroy(int $id): JsonResponse
+    {
+        $tier = PriceTier::findOrFail($id);
+        $tier->delete();
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Tier harga grosir berhasil dihapus.',
+        ]);
     }
 
     public function updateMoq(Request $request, int $variantId): JsonResponse

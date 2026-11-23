@@ -22,9 +22,9 @@ export default function PaymentsListPage() {
   const load = async (s = search, st = status, p = page) => {
     setLoading(true)
     try {
-      const { data } = await axiosClient.get('/admin/payments', { params: { search: s, status: st || undefined, page: p } })
-      setPayments(data.data || [])
-      setMeta(data.meta || null)
+      const res = await axiosClient.get('/admin/payments', { params: { search: s, status: st || undefined, page: p } })
+      setPayments(res.data || [])
+      setMeta(res.meta || null)
     } catch { setPayments([]) } finally { setLoading(false) }
   }
 

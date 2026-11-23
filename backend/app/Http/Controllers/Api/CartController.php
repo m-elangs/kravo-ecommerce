@@ -20,15 +20,17 @@ class CartController extends Controller
 
     public function index(Request $request): JsonResponse
     {
-        $user = $request->user();
-        $cart = $this->cartService->getOrCreateCart($user, $request->header('X-Session-ID'));
+        $user = $request->user('sanctum') ?? auth('sanctum')->user();
+        $sessionId = $request->header('X-Session-ID');
+        $cart = $this->cartService->getOrCreateCart($user, $sessionId);
 
         $items = CartItem::where('cart_id', $cart->id)
             ->with(['productVariant.product.primaryImage', 'productVariant.inventory', 'productVariant.priceTiers'])
             ->get();
 
         $subtotal = $items->sum(function ($item) {
-            return (float) $item->productVariant->retail_price * $item->quantity;
+            $price = $item->productVariant?->retail_price ?? 0;
+            return (float) $price * $item->quantity;
         });
 
         return response()->json([
@@ -49,8 +51,9 @@ class CartController extends Controller
             'quantity' => 'required|integer|min:1',
         ]);
 
-        $user = $request->user();
-        $cart = $this->cartService->getOrCreateCart($user, $request->header('X-Session-ID'));
+        $user = $request->user('sanctum') ?? auth('sanctum')->user();
+        $sessionId = $request->header('X-Session-ID');
+        $cart = $this->cartService->getOrCreateCart($user, $sessionId);
 
         $item = $this->cartService->addItem($cart, $request->variant_id, $request->quantity);
 

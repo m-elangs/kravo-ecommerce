@@ -26,6 +26,13 @@ class Product extends Model
         'is_featured' => 'boolean',
     ];
 
+    protected $appends = ['image_url'];
+
+    public function getImageUrlAttribute()
+    {
+        return $this->primaryImage?->image_url ?? $this->images?->first()?->image_url ?? null;
+    }
+
     public function category()
     {
         return $this->belongsTo(Category::class);

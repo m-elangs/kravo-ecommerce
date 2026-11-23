@@ -13,7 +13,7 @@ class ShipmentAdminController extends Controller
         $query = Shipment::with(['order.user'])->latest();
 
         if ($request->status) {
-            $query->where('status', $request->status);
+            $query->where('shipping_status', $request->status);
         }
 
         if ($request->search) {
@@ -31,13 +31,13 @@ class ShipmentAdminController extends Controller
                 return [
                     'id'              => $s->id,
                     'order_number'    => $s->order->order_number ?? '-',
-                    'customer_name'   => $s->order->user->name ?? '-',
-                    'courier'         => $s->courier,
+                    'customer_name'   => $s->order->user->name ?? 'Customer',
+                    'courier'         => $s->courier_name ?? 'JNE',
                     'tracking_number' => $s->tracking_number,
-                    'status'          => $s->status,
-                    'shipped_at'      => $s->shipped_at ? $s->shipped_at->format('d M Y') : null,
-                    'delivered_at'    => $s->delivered_at ? $s->delivered_at->format('d M Y') : null,
-                    'created_at'      => $s->created_at->format('d M Y'),
+                    'status'          => $s->shipping_status ?? 'pending_packing',
+                    'shipped_at'      => $s->dispatched_at ? $s->dispatched_at->format('d M Y H:i') : null,
+                    'delivered_at'    => $s->delivered_at ? $s->delivered_at->format('d M Y H:i') : null,
+                    'created_at'      => $s->created_at->format('d M Y H:i'),
                 ];
             }),
             'meta' => [

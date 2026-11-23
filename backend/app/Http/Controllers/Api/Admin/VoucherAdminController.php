@@ -14,10 +14,11 @@ class VoucherAdminController extends Controller
         $query = Voucher::latest();
 
         if ($request->search) {
-            $query->where('code', 'like', "%{$request->search}%");
+            $query->where('code', 'like', "%{$request->search}%")
+                  ->orWhere('name', 'like', "%{$request->search}%");
         }
 
-        $vouchers = $query->paginate(20);
+        $vouchers = $query->paginate(50);
 
         return response()->json([
             'success' => true,
@@ -25,16 +26,17 @@ class VoucherAdminController extends Controller
                 return [
                     'id'            => $v->id,
                     'code'          => $v->code,
-                    'type'          => $v->type,
-                    'value'         => $v->value,
-                    'min_purchase'  => $v->min_purchase,
-                    'max_discount'  => $v->max_discount,
-                    'usage_limit'   => $v->usage_limit,
-                    'used_count'    => $v->used_count,
-                    'valid_from'    => $v->valid_from ? $v->valid_from->format('d M Y') : null,
-                    'valid_until'   => $v->valid_until ? $v->valid_until->format('d M Y') : null,
-                    'is_active'     => $v->is_active,
-                    'created_at'    => $v->created_at->format('d M Y'),
+                    'name'          => $v->name,
+                    'type'          => $v->discount_type,
+                    'value'         => (float) $v->discount_value,
+                    'min_purchase'  => $v->min_order_amount ? (float) $v->min_order_amount : null,
+                    'max_discount'  => $v->max_discount_amount ? (float) $v->max_discount_amount : null,
+                    'usage_limit'   => $v->quota,
+                    'used_count'    => (int) ($v->used_count ?? 0),
+                    'valid_from'    => $v->start_date ? $v->start_date->format('d M Y') : null,
+                    'valid_until'   => $v->end_date ? $v->end_date->format('d M Y') : null,
+                    'is_active'     => (bool) $v->is_active,
+                    'created_at'    => $v->created_at ? $v->created_at->format('d M Y') : '-',
                 ];
             }),
             'meta' => [
@@ -47,8 +49,9 @@ class VoucherAdminController extends Controller
 
     public function store(Request $request)
     {
-        $data = $request->validate([
+        $request->validate([
             'code'         => ['required', 'string', 'max:50', Rule::unique('vouchers', 'code')],
+            'name'         => ['nullable', 'string', 'max:100'],
             'type'         => ['required', Rule::in(['percentage', 'fixed'])],
             'value'        => ['required', 'numeric', 'min:0'],
             'min_purchase' => ['nullable', 'numeric', 'min:0'],
@@ -56,12 +59,28 @@ class VoucherAdminController extends Controller
             'usage_limit'  => ['nullable', 'integer', 'min:1'],
             'valid_from'   => ['nullable', 'date'],
             'valid_until'  => ['nullable', 'date', 'after_or_equal:valid_from'],
-            'is_active'    => ['boolean'],
+            'is_active'    => ['nullable', 'boolean'],
         ]);
 
-        $voucher = Voucher::create($data);
+        $voucher = Voucher::create([
+            'code'                => strtoupper(trim($request->code)),
+            'name'                => $request->filled('name') ? trim($request->name) : ('Promo ' . strtoupper(trim($request->code))),
+            'discount_type'       => $request->type,
+            'discount_value'      => $request->value,
+            'min_order_amount'    => $request->min_purchase ?? 0,
+            'max_discount_amount' => $request->max_discount,
+            'quota'               => $request->usage_limit ?? 100,
+            'used_count'          => 0,
+            'start_date'          => $request->valid_from,
+            'end_date'            => $request->valid_until,
+            'is_active'           => $request->boolean('is_active', true),
+        ]);
 
-        return response()->json(['success' => true, 'data' => $voucher], 201);
+        return response()->json([
+            'success' => true,
+            'message' => 'Voucher berhasil dibuat.',
+            'data'    => $voucher
+        ], 201);
     }
 
     public function update(Request $request, $id)

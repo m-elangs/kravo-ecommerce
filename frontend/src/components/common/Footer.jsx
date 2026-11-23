@@ -1,8 +1,10 @@
 import React from 'react'
 import { Link } from 'react-router-dom'
 import { Sparkles, ShieldCheck, Truck, RefreshCw, Instagram, Facebook, Twitter, Mail, Phone, MapPin } from 'lucide-react'
+import { useAuth } from '../../contexts/AuthContext'
 
 export default function Footer() {
+  const { isReseller } = useAuth()
   return (
     <footer className="bg-kravo-dark text-kravo-cream mt-auto border-t border-kravo-darkMuted">
       {/* Brand Value Pillars */}
@@ -82,17 +84,19 @@ export default function Footer() {
           </ul>
         </div>
 
-        {/* B2B & Kemitraan */}
-        <div>
-          <h4 className="font-bold text-white mb-4 text-sm uppercase tracking-wider">Kemitraan B2B</h4>
-          <ul className="space-y-2.5 text-sm text-kravo-cream/70">
-            <li><Link to="/wholesale" className="hover:text-kravo-orange transition-colors">Daftar Jadi Reseller</Link></li>
-            <li><Link to="/wholesale#benefits" className="hover:text-kravo-orange transition-colors">Keuntungan & Margin</Link></li>
-            <li><Link to="/wholesale#moq" className="hover:text-kravo-orange transition-colors">Aturan MOQ Grosir</Link></li>
-            <li><Link to="/order-tracking" className="hover:text-kravo-orange transition-colors">Lacak Pesanan Grosir</Link></li>
-            <li><Link to="/admin" className="text-kravo-orange/90 font-medium hover:underline">Portal Staff Admin</Link></li>
-          </ul>
-        </div>
+        {/* B2B & Kemitraan - hanya untuk Reseller */}
+        {isReseller && (
+          <div>
+            <h4 className="font-bold text-white mb-4 text-sm uppercase tracking-wider">Kemitraan B2B</h4>
+            <ul className="space-y-2.5 text-sm text-kravo-cream/70">
+              <li><Link to="/wholesale" className="hover:text-kravo-orange transition-colors">Daftar Jadi Reseller</Link></li>
+              <li><Link to="/wholesale#benefits" className="hover:text-kravo-orange transition-colors">Keuntungan & Margin</Link></li>
+              <li><Link to="/wholesale#moq" className="hover:text-kravo-orange transition-colors">Aturan MOQ Grosir</Link></li>
+              <li><Link to="/order-tracking" className="hover:text-kravo-orange transition-colors">Lacak Pesanan Grosir</Link></li>
+              <li><Link to="/admin" className="text-kravo-orange/90 font-medium hover:underline">Portal Staff Admin</Link></li>
+            </ul>
+          </div>
+        )}
 
         {/* Hubungi Kami */}
         <div>
