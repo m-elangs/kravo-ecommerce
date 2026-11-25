@@ -20,7 +20,7 @@ export default function CategoriesPage() {
   }, [])
 
   return (
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 space-y-8">
+    <div className="w-full px-4 sm:px-6 lg:px-8 py-6 sm:py-8 space-y-6">
       <div>
         <span className="text-xs font-bold text-kravo-orange uppercase tracking-wider block">Kategori Produk</span>
         <h1 className="text-3xl font-black text-kravo-dark">Koleksi Makanan Ringan KRAVO</h1>

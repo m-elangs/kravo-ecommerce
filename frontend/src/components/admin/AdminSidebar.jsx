@@ -58,7 +58,7 @@ export default function AdminSidebar({ isOpen, setIsOpen }) {
 
       {/* Sidebar Panel */}
       <aside className={`
-        fixed top-0 bottom-0 left-0 z-50 w-72 bg-kravo-dark text-kravo-cream flex flex-col transition-transform duration-300 ease-in-out
+        fixed top-0 bottom-0 left-0 z-50 w-[min(17rem,85vw)] lg:w-64 shrink-0 bg-kravo-dark text-kravo-cream flex flex-col transition-transform duration-300 ease-in-out
         lg:static lg:translate-x-0
         ${isOpen ? 'translate-x-0' : '-translate-x-full'}
       `}>

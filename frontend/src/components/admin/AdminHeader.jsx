@@ -85,7 +85,7 @@ export default function AdminHeader({ onMenuClick }) {
   }
 
   return (
-    <header className="h-20 bg-white border-b border-slate-200 px-4 sm:px-6 lg:px-8 flex items-center justify-between gap-4 sticky top-0 z-30 shadow-sm">
+    <header className="h-16 sm:h-20 bg-white border-b border-slate-200 px-3 sm:px-5 lg:px-6 flex items-center justify-between gap-4 sticky top-0 z-30 shadow-sm">
       {/* Left: Mobile hamburger */}
       <div className="flex items-center gap-4">
         <button
@@ -126,7 +126,7 @@ export default function AdminHeader({ onMenuClick }) {
 
           {/* Notifications Popover */}
           {showNotifications && (
-            <div className="absolute right-0 mt-2 w-80 sm:w-96 bg-white rounded-3xl shadow-2xl border border-slate-200 overflow-hidden z-50 animate-in fade-in zoom-in-95">
+            <div className="fixed inset-x-3 top-[4.75rem] sm:absolute sm:inset-auto sm:right-0 sm:top-auto sm:mt-2 sm:w-96 bg-white rounded-3xl shadow-2xl border border-slate-200 overflow-hidden z-50 animate-in fade-in zoom-in-95">
               <div className="px-5 py-4 border-b border-slate-100 flex items-center justify-between">
                 <div>
                   <h4 className="font-black text-slate-900 text-sm">Pemberitahuan Sistem</h4>
@@ -211,7 +211,7 @@ export default function AdminHeader({ onMenuClick }) {
 
           {/* Profile Dropdown Menu */}
           {showProfileMenu && (
-            <div className="absolute right-0 mt-2 w-64 bg-white rounded-3xl shadow-2xl border border-slate-200 overflow-hidden z-50 animate-in fade-in zoom-in-95">
+            <div className="absolute right-0 mt-2 w-64 max-w-[calc(100vw-1.5rem)] bg-white rounded-3xl shadow-2xl border border-slate-200 overflow-hidden z-50 animate-in fade-in zoom-in-95">
               {/* Header Info */}
               <div className="p-4 bg-slate-50 border-b border-slate-100 flex items-center gap-3">
                 <div className="w-10 h-10 rounded-full bg-kravo-dark text-white font-bold text-sm flex items-center justify-center shrink-0">

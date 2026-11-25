@@ -176,7 +176,7 @@ export default function DashboardOverviewPage() {
           </div>
 
           {/* Breakdown Pills: B2C vs B2B */}
-          <div className="grid grid-cols-2 gap-3 min-w-[280px] sm:min-w-[340px]">
+          <div className="grid grid-cols-2 gap-3 w-full lg:w-auto lg:min-w-[340px]">
             <div className="bg-white/10 backdrop-blur-md p-4 rounded-2xl border border-white/15">
               <div className="flex items-center gap-1.5 text-xs text-kravo-cream/80 mb-1 font-semibold">
                 <span className="w-2.5 h-2.5 rounded-full bg-white"></span>

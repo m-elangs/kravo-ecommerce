@@ -3,6 +3,7 @@ import { useParams, Link, useNavigate } from 'react-router-dom'
 import { Star, ShieldCheck, ShoppingBag, Heart, Store, ArrowRight, Loader2, Check } from 'lucide-react'
 import { productApi } from '../../api/productApi'
 import { useCart } from '../../contexts/CartContext'
+import { useWishlist } from '../../contexts/WishlistContext'
 import { useAuth } from '../../contexts/AuthContext'
 import { getProductImageUrl } from '../../utils/imageUrl'
 
@@ -10,6 +11,7 @@ export default function ProductDetailPage() {
   const { slug } = useParams()
   const navigate = useNavigate()
   const { addToCart } = useCart()
+  const { isInWishlist, toggleWishlist } = useWishlist()
   const { user, isReseller, isApprovedReseller } = useAuth()
 
   const [product, setProduct] = useState(null)
@@ -117,7 +119,7 @@ export default function ProductDetailPage() {
   const isMoqExceeded = isReseller && currentStock < moq
 
   return (
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 space-y-12">
+    <div className="w-full px-4 sm:px-6 lg:px-8 py-6 sm:py-8 space-y-10">
       {/* Product Main View */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-start">
         {/* Left: Product Showcase */}
@@ -147,7 +149,7 @@ export default function ProductDetailPage() {
           </div>
 
           {/* FEFO Batch Indicator */}
-          <div className="w-full mt-6 bg-slate-50 p-4 rounded-2xl border border-slate-200 flex items-center justify-between text-xs">
+          <div className="w-full mt-6 bg-slate-50 p-4 rounded-2xl border border-slate-200 flex flex-col sm:flex-row sm:items-center justify-between gap-1.5 text-xs">
             <div className="flex items-center gap-2 text-emerald-700 font-semibold">
               <ShieldCheck className="w-4 h-4 text-emerald-600" />
               <span>FEFO Batch: {activeBatch ? `#${activeBatch.batch_number}` : 'Standar Fresh Batch'}</span>
@@ -169,7 +171,7 @@ export default function ProductDetailPage() {
             </h1>
             <p className="text-xs text-slate-500 mt-1">{product.tagline}</p>
 
-            <div className="flex items-center gap-3 mt-3">
+            <div className="flex flex-wrap items-center gap-2 sm:gap-3 mt-3">
               <div className="flex items-center gap-1 text-amber-500 text-sm font-bold">
                 <Star className="w-4 h-4 fill-amber-500" /> 4.9
               </div>
@@ -199,7 +201,7 @@ export default function ProductDetailPage() {
           {/* B2B Wholesale Tier Matrix Banner */}
           {isReseller && selectedVariant?.price_tiers && selectedVariant.price_tiers.length > 0 && (
             <div className="bg-gradient-to-br from-kravo-dark to-kravo-darkMuted text-white p-6 rounded-2xl border border-kravo-darkMuted space-y-4">
-              <div className="flex items-center justify-between">
+              <div className="flex flex-wrap items-center justify-between gap-2">
                 <div className="flex items-center gap-2 text-kravo-orange font-bold text-xs uppercase tracking-wider">
                   <Store className="w-4 h-4" /> Harga Grosir B2B (Reseller & Distributor)
                 </div>
@@ -220,7 +222,7 @@ export default function ProductDetailPage() {
                 </div>
               )}
 
-              <div className="grid grid-cols-3 gap-2 text-center text-xs">
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 text-center text-xs">
                 {selectedVariant.price_tiers.map((t, idx) => (
                   <div key={t.id} className="bg-white/10 p-2.5 rounded-xl border border-white/10">
                     <div className="text-kravo-cream/70 text-[10px]">Tier {idx + 1} (&ge; {t.min_quantity} pcs)</div>
@@ -272,7 +274,7 @@ export default function ProductDetailPage() {
 
           {/* Quantity and Actions */}
           <div className="space-y-3 pt-2">
-            <div className="flex items-center gap-4">
+            <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 sm:gap-4">
               <div className="flex items-center border border-kravo-creamBorder rounded-xl bg-white overflow-hidden">
                 <button
                   type="button"
@@ -295,6 +297,20 @@ export default function ProductDetailPage() {
                 className="flex-1 py-3 px-6 rounded-xl bg-kravo-orange hover:bg-kravo-orangeHover text-white font-bold text-sm flex items-center justify-center gap-2 shadow-lg shadow-kravo-orange/30 transition-all disabled:opacity-50 cursor-pointer disabled:cursor-not-allowed"
               >
                 <ShoppingBag className="w-4 h-4" /> {adding ? 'Menambahkan...' : isOutOfStock ? 'Stok Habis' : 'Tambah ke Keranjang'}
+              </button>
+
+              <button
+                type="button"
+                onClick={() => toggleWishlist(product)}
+                className={`py-3 px-4 rounded-xl border font-bold text-sm flex items-center justify-center gap-2 transition-all cursor-pointer ${
+                  isInWishlist(product.id)
+                    ? 'bg-rose-50 border-rose-200 text-rose-600 hover:bg-rose-100'
+                    : 'bg-white border-kravo-creamBorder text-slate-600 hover:text-rose-500 hover:border-rose-200'
+                }`}
+                title={isInWishlist(product.id) ? 'Hapus dari Wishlist' : 'Simpan ke Wishlist'}
+              >
+                <Heart className={`w-4 h-4 ${isInWishlist(product.id) ? 'fill-rose-500 text-rose-500' : ''}`} />
+                <span className="sm:hidden">{isInWishlist(product.id) ? 'Tersimpan di Wishlist' : 'Simpan ke Wishlist'}</span>
               </button>
             </div>
 

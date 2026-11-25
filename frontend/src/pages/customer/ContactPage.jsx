@@ -85,7 +85,7 @@ export default function ContactPage() {
   }
 
   return (
-    <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-16 space-y-12">
+    <div className="w-full px-4 sm:px-6 lg:px-8 py-8 sm:py-10 space-y-10">
       <div className="text-center space-y-3 max-w-2xl mx-auto">
         <span className="text-xs font-bold text-kravo-orange uppercase tracking-wider block">Layanan Bantuan</span>
         <h1 className="text-4xl font-black text-kravo-dark">Hubungi Tim KRAVO</h1>

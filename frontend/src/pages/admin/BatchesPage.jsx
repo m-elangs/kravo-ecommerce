@@ -479,7 +479,8 @@ export default function BatchesPage() {
         </div>
       ) : (
         <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
-          <table className="w-full text-left text-xs">
+          <div className="overflow-x-auto">
+          <table className="w-full text-left text-xs min-w-[760px]">
             <thead className="bg-slate-50 border-b border-slate-200 text-slate-400 font-bold uppercase tracking-wider">
               <tr>
                 <th className="py-3 px-4">Nomor Batch</th>
@@ -562,6 +563,7 @@ export default function BatchesPage() {
               )}
             </tbody>
           </table>
+          </div>
         </div>
       )}
     </div>

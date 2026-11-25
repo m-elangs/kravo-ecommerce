@@ -3,7 +3,7 @@ import { Sparkles, ShieldCheck, Heart, Award } from 'lucide-react'
 
 export default function AboutPage() {
   return (
-    <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-16 space-y-16">
+    <div className="w-full px-4 sm:px-6 lg:px-8 py-8 sm:py-10 space-y-12">
       <div className="text-center space-y-4 max-w-3xl mx-auto">
         <span className="text-xs font-bold text-kravo-orange uppercase tracking-widest">Kisah Kami</span>
         <h1 className="text-4xl sm:text-5xl font-black text-kravo-dark tracking-tight">Good Snacks. Better Moments.</h1>

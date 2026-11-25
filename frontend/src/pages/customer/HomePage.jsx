@@ -5,6 +5,7 @@ import {
   Star,
   Sparkles,
   ShoppingBag,
+  Heart,
   Store,
   CheckCircle2,
   ChevronLeft,
@@ -16,6 +17,7 @@ import {
 } from 'lucide-react'
 import { productApi } from '../../api/productApi'
 import { useCart } from '../../contexts/CartContext'
+import { useWishlist } from '../../contexts/WishlistContext'
 import { useAuth } from '../../contexts/AuthContext'
 import { getProductImageUrl } from '../../utils/imageUrl'
 
@@ -81,6 +83,7 @@ export default function HomePage() {
   const touchStartX = useRef(null)
 
   const { addToCart } = useCart()
+  const { isInWishlist, toggleWishlist } = useWishlist()
   const { isReseller } = useAuth()
 
   useEffect(() => {
@@ -195,14 +198,14 @@ export default function HomePage() {
   }, [featuredProducts, selectedCategory])
 
   return (
-    <div className="space-y-16 pb-20">
+    <div className="space-y-10 pb-14">
       {/* Hero Section with Auto-sliding Showcase */}
-      <section className="relative overflow-hidden bg-kravo-dark text-kravo-cream pt-10 pb-16 lg:py-24 px-4 sm:px-6 lg:px-8 rounded-b-3xl sm:rounded-b-4xl shadow-2xl">
+      <section className="relative overflow-hidden bg-kravo-dark text-kravo-cream pt-8 pb-12 lg:py-14 px-4 sm:px-6 lg:px-10 xl:px-12 rounded-b-3xl shadow-2xl">
         {/* Ambient background glows */}
         <div className="absolute top-10 left-1/4 w-96 h-96 bg-kravo-orange/15 rounded-full blur-3xl pointer-events-none -z-0" />
         <div className="absolute bottom-10 right-1/4 w-96 h-96 bg-emerald-500/10 rounded-full blur-3xl pointer-events-none -z-0" />
 
-        <div className="max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-12 gap-12 items-center relative z-10">
+        <div className="w-full mx-auto grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-10 items-center relative z-10">
 
           {/* Left Text & Brand Pitch */}
           <div className="lg:col-span-7 space-y-6 text-center lg:text-left">
@@ -268,7 +271,7 @@ export default function HomePage() {
             <div className="w-72 h-72 sm:w-96 sm:h-96 rounded-full bg-gradient-to-tr from-kravo-orange/30 via-amber-500/20 to-transparent blur-3xl absolute -z-10 animate-pulse-glow" />
 
             {/* Showcase Main Card */}
-            <div className="w-full max-w-md bg-gradient-to-br from-[#272D25] via-[#1F241E] to-[#151914] p-6 sm:p-8 rounded-3xl border border-white/15 shadow-2xl backdrop-blur-md relative overflow-hidden transition-all duration-500">
+            <div className="w-full max-w-lg bg-gradient-to-br from-[#272D25] via-[#1F241E] to-[#151914] p-5 sm:p-7 rounded-3xl border border-white/15 shadow-2xl backdrop-blur-md relative overflow-hidden transition-all duration-500">
 
               {/* Card Header: Slide Counter & Badge */}
               <div className="flex items-center justify-between gap-2 mb-4">
@@ -351,7 +354,7 @@ export default function HomePage() {
               </div>
 
               {/* Price & Action Row */}
-              <div className="pt-4 mt-4 flex items-center justify-between border-t border-white/10">
+              <div className="pt-4 mt-4 flex flex-wrap items-center justify-between gap-3 border-t border-white/10">
                 <div className="text-left">
                   <span className="text-[10px] text-kravo-cream/60 block uppercase font-medium">Harga Retail</span>
                   <div className="flex items-baseline gap-2">
@@ -448,7 +451,7 @@ export default function HomePage() {
       </section>
 
       {/* Featured Products Section with Interactive Category Filter */}
-      <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-8">
+      <section className="w-full px-4 sm:px-6 lg:px-8 space-y-6">
         <div className="flex flex-col md:flex-row md:items-end justify-between gap-6">
           <div>
             <span className="text-xs font-bold text-kravo-orange uppercase tracking-widest block mb-1">
@@ -477,7 +480,7 @@ export default function HomePage() {
         </div>
 
         {/* Product Cards Grid */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-5">
           {filteredProducts.map((p) => {
             const variant = p.variants?.[0]
             const price = variant ? Number(variant.retail_price) : 24500
@@ -562,6 +565,19 @@ export default function HomePage() {
                       Detail
                     </Link>
                     <button
+                      type="button"
+                      onClick={() => toggleWishlist(p)}
+                      className={`p-2.5 rounded-xl border transition-all shadow-sm cursor-pointer ${
+                        isInWishlist(p.id)
+                          ? 'bg-rose-50 border-rose-200 text-rose-500 hover:bg-rose-100'
+                          : 'bg-white border-kravo-creamBorder text-slate-500 hover:text-rose-500 hover:border-rose-200'
+                      }`}
+                      title={isInWishlist(p.id) ? 'Hapus dari Wishlist' : 'Simpan ke Wishlist'}
+                      aria-label={isInWishlist(p.id) ? 'Hapus dari Wishlist' : 'Simpan ke Wishlist'}
+                    >
+                      <Heart className={`w-4 h-4 ${isInWishlist(p.id) ? 'fill-rose-500' : ''}`} />
+                    </button>
+                    <button
                       onClick={() => handleQuickAdd(p)}
                       disabled={addingId === p.id || isOutOfStock}
                       className={`p-2.5 rounded-xl text-white text-xs font-bold transition-all shadow-sm ${isOutOfStock
@@ -582,7 +598,7 @@ export default function HomePage() {
 
       {/* B2B Reseller Highlight Banner */}
       {isReseller && (
-        <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <section className="w-full px-4 sm:px-6 lg:px-8">
           <div className="bg-gradient-to-r from-kravo-dark via-kravo-darkMuted to-[#1A2019] text-white rounded-3xl p-8 sm:p-12 lg:p-16 border border-kravo-darkMuted relative overflow-hidden shadow-2xl">
             <div className="max-w-2xl space-y-6 relative z-10">
               <span className="px-3 py-1 rounded-full bg-kravo-orange text-white text-xs font-black uppercase tracking-wider">

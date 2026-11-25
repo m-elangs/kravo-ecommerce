@@ -9,7 +9,7 @@ export default function Footer() {
     <footer className="bg-kravo-dark text-kravo-cream mt-auto border-t border-kravo-darkMuted">
       {/* Brand Value Pillars */}
       <div className="border-b border-kravo-darkMuted">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 grid grid-cols-1 md:grid-cols-4 gap-6">
+        <div className="w-full px-4 sm:px-6 lg:px-8 py-6 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
           <div className="flex items-center gap-4">
             <div className="w-12 h-12 rounded-2xl bg-kravo-orange/20 text-kravo-orange flex items-center justify-center flex-shrink-0">
               <Sparkles className="w-6 h-6" />
@@ -53,9 +53,9 @@ export default function Footer() {
       </div>
 
       {/* Main Footer Links */}
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16 grid grid-cols-1 md:grid-cols-5 gap-10">
+      <div className="w-full px-4 sm:px-6 lg:px-8 py-10 sm:py-12 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-8 lg:gap-10">
         {/* Brand Column */}
-        <div className="md:col-span-2 space-y-4">
+        <div className="sm:col-span-2 space-y-4">
           <div className="flex items-center gap-2">
             <div className="w-9 h-9 rounded-xl bg-kravo-orange text-white flex items-center justify-center font-black text-xl">
               K

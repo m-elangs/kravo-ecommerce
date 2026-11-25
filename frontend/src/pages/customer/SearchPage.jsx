@@ -1,10 +1,12 @@
 import React, { useState, useEffect } from 'react'
 import { Link, useSearchParams } from 'react-router-dom'
-import { Search, Star, ShoppingBag, Loader2 } from 'lucide-react'
+import { Search, Star, ShoppingBag, Heart, Loader2 } from 'lucide-react'
 import { productApi } from '../../api/productApi'
+import { useWishlist } from '../../contexts/WishlistContext'
 import { getProductImageUrl } from '../../utils/imageUrl'
 
 export default function SearchPage() {
+  const { isInWishlist, toggleWishlist } = useWishlist()
   const [params] = useSearchParams()
   const initialQuery = params.get('q') || ''
   const [query, setQuery] = useState(initialQuery)
@@ -24,7 +26,7 @@ export default function SearchPage() {
   }, [query])
 
   return (
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 space-y-8">
+    <div className="w-full px-4 sm:px-6 lg:px-8 py-6 sm:py-8 space-y-6">
       <div className="max-w-xl mx-auto space-y-4 text-center">
         <h1 className="text-3xl font-black text-kravo-dark">Pencarian Snack KRAVO</h1>
         <div className="relative">
@@ -56,7 +58,7 @@ export default function SearchPage() {
             <p className="text-xs text-slate-400 mt-1">Coba kata kunci lain atau lihat seluruh menu di halaman katalog.</p>
           </div>
         ) : (
-          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-6">
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-5">
             {products.map(p => {
               const defaultVariant = p.variants?.[0]
               const price = defaultVariant ? defaultVariant.retail_price : 0
@@ -95,12 +97,27 @@ export default function SearchPage() {
                       Rp {Number(price).toLocaleString('id-ID')}
                     </div>
                   </div>
-                  <Link
-                    to={`/products/${p.slug}`}
-                    className="mt-4 w-full py-2 rounded-xl bg-kravo-dark text-white text-xs font-bold flex items-center justify-center gap-1.5 hover:bg-kravo-orange transition-colors"
-                  >
-                    <ShoppingBag className="w-3.5 h-3.5" /> Detail
-                  </Link>
+                  <div className="mt-4 flex gap-2">
+                    <Link
+                      to={`/products/${p.slug}`}
+                      className="flex-1 py-2 rounded-xl bg-kravo-dark text-white text-xs font-bold flex items-center justify-center gap-1.5 hover:bg-kravo-orange transition-colors"
+                    >
+                      <ShoppingBag className="w-3.5 h-3.5" /> Detail
+                    </Link>
+                    <button
+                      type="button"
+                      onClick={() => toggleWishlist(p)}
+                      className={`p-2 rounded-xl border transition-all cursor-pointer ${
+                        isInWishlist(p.id)
+                          ? 'bg-rose-50 border-rose-200 text-rose-500 hover:bg-rose-100'
+                          : 'bg-white border-kravo-creamBorder text-slate-500 hover:text-rose-500 hover:border-rose-200'
+                      }`}
+                      title={isInWishlist(p.id) ? 'Hapus dari Wishlist' : 'Simpan ke Wishlist'}
+                      aria-label={isInWishlist(p.id) ? 'Hapus dari Wishlist' : 'Simpan ke Wishlist'}
+                    >
+                      <Heart className={`w-4 h-4 ${isInWishlist(p.id) ? 'fill-rose-500' : ''}`} />
+                    </button>
+                  </div>
                 </div>
               )
             })}

@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from 'react'
 import { Link, useSearchParams } from 'react-router-dom'
-import { Filter, Star, Search, ShoppingBag, Loader2 } from 'lucide-react'
+import { Filter, Star, Search, ShoppingBag, Heart, Loader2 } from 'lucide-react'
 import { productApi } from '../../api/productApi'
 import { useCart } from '../../contexts/CartContext'
+import { useWishlist } from '../../contexts/WishlistContext'
 import { useAuth } from '../../contexts/AuthContext'
 import { getProductImageUrl } from '../../utils/imageUrl'
 
@@ -18,6 +19,7 @@ export default function CatalogPage() {
   const [addingId, setAddingId] = useState(null)
 
   const { addToCart } = useCart()
+  const { isInWishlist, toggleWishlist } = useWishlist()
   const { isReseller } = useAuth()
 
   useEffect(() => {
@@ -61,7 +63,7 @@ export default function CatalogPage() {
   }
 
   return (
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 space-y-8">
+    <div className="w-full px-4 sm:px-6 lg:px-8 py-6 sm:py-8 space-y-6">
       {/* Header */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-kravo-creamBorder pb-6">
         <div>
@@ -82,9 +84,9 @@ export default function CatalogPage() {
         </div>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
         {/* Sidebar Filter */}
-        <aside className="space-y-6">
+        <aside className="lg:col-span-3 xl:col-span-2 space-y-6">
           <div className="bg-white p-6 rounded-2xl border border-kravo-creamBorder shadow-sm space-y-4">
             <h3 className="font-extrabold text-xs text-kravo-dark uppercase tracking-wider flex items-center gap-2">
               <Filter className="w-4 h-4 text-kravo-orange" /> Kategori Makanan
@@ -117,7 +119,7 @@ export default function CatalogPage() {
         </aside>
 
         {/* Products Grid */}
-        <div className="lg:col-span-3">
+        <div className="lg:col-span-9 xl:col-span-10">
           {loading ? (
             <div className="h-64 flex flex-col items-center justify-center text-slate-400 gap-2">
               <Loader2 className="w-8 h-8 animate-spin text-kravo-orange" />
@@ -130,7 +132,7 @@ export default function CatalogPage() {
               <p className="text-xs text-slate-500">Coba kata kunci lain atau pilih kategori berbeda.</p>
             </div>
           ) : (
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-5">
               {products.map(p => {
                 const defaultVariant = p.variants?.[0]
                 const retailPrice = defaultVariant ? defaultVariant.retail_price : 0
@@ -225,6 +227,19 @@ export default function CatalogPage() {
                         >
                           Detail
                         </Link>
+                        <button
+                          type="button"
+                          onClick={() => toggleWishlist(p)}
+                          className={`p-2 rounded-xl border transition-all shadow-sm cursor-pointer ${
+                            isInWishlist(p.id)
+                              ? 'bg-rose-50 border-rose-200 text-rose-500 hover:bg-rose-100'
+                              : 'bg-white border-kravo-creamBorder text-slate-500 hover:text-rose-500 hover:border-rose-200'
+                          }`}
+                          title={isInWishlist(p.id) ? 'Hapus dari Wishlist' : 'Simpan ke Wishlist'}
+                          aria-label={isInWishlist(p.id) ? 'Hapus dari Wishlist' : 'Simpan ke Wishlist'}
+                        >
+                          <Heart className={`w-4 h-4 ${isInWishlist(p.id) ? 'fill-rose-500' : ''}`} />
+                        </button>
                         <button
                           onClick={() => handleQuickAdd(p)}
                           disabled={addingId === p.id || isOutOfStock}

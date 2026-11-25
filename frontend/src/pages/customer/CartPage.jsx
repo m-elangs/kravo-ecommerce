@@ -48,7 +48,7 @@ export default function CartPage() {
   }
 
   return (
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 space-y-8">
+    <div className="w-full px-4 sm:px-6 lg:px-8 py-6 sm:py-8 space-y-6">
       <div className="flex items-center justify-between">
         <div>
           <span className="text-xs font-bold text-kravo-orange uppercase tracking-wider block">Keranjang Belanja</span>
@@ -85,7 +85,7 @@ export default function CartPage() {
                 }`}
               >
                 <div className="flex items-center justify-between gap-4">
-                  <div className="flex items-center gap-4">
+                  <div className="flex flex-wrap items-center justify-between sm:justify-end gap-3 sm:gap-4">
                     <div className="w-16 h-16 rounded-xl bg-slate-50 border border-slate-200 flex items-center justify-center overflow-hidden flex-shrink-0 relative">
                       {getProductImageUrl(product) ? (
                         <img
@@ -133,7 +133,7 @@ export default function CartPage() {
                     </div>
                   </div>
 
-                  <div className="flex items-center gap-4">
+                  <div className="flex flex-wrap items-center justify-between sm:justify-end gap-3 sm:gap-4">
                     <div className="flex items-center border border-slate-200 rounded-xl bg-slate-50 text-xs font-bold overflow-hidden shadow-sm focus-within:border-kravo-orange focus-within:ring-1 focus-within:ring-kravo-orange transition-all">
                       <button
                         type="button"

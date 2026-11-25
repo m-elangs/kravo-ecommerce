@@ -72,7 +72,8 @@ export default function ShipmentsListPage() {
         ) : shipments.length === 0 ? (
           <div className="flex flex-col items-center py-20 text-slate-400"><Truck className="w-10 h-10 mb-2" /><p className="text-sm">Belum ada data pengiriman</p></div>
         ) : (
-          <table className="w-full text-left text-xs">
+          <div className="overflow-x-auto">
+          <table className="w-full text-left text-xs min-w-[720px]">
             <thead className="bg-slate-50 border-b border-slate-200 text-slate-400 font-bold uppercase">
               <tr>
                 <th className="py-3 px-4">No. Order</th>
@@ -104,6 +105,7 @@ export default function ShipmentsListPage() {
               ))}
             </tbody>
           </table>
+          </div>
         )}
 
         {meta && meta.last_page > 1 && (

@@ -57,30 +57,32 @@ export default function CustomersListPage() {
         ) : customers.length === 0 ? (
           <div className="flex flex-col items-center py-20 text-slate-400"><Users className="w-10 h-10 mb-2" /><p className="text-sm">Belum ada pelanggan</p></div>
         ) : (
-          <table className="w-full text-left text-xs">
-            <thead className="bg-slate-50 border-b border-slate-200 text-slate-400 font-bold uppercase">
-              <tr>
-                <th className="py-3 px-4">Nama</th>
-                <th className="py-3 px-4">Email</th>
-                <th className="py-3 px-4">No. HP</th>
-                <th className="py-3 px-4">Total Order</th>
-                <th className="py-3 px-4">Total Belanja</th>
-                <th className="py-3 px-4">Bergabung</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-slate-100 font-medium">
-              {customers.map(c => (
-                <tr key={c.id} className="hover:bg-slate-50/50 transition-colors">
-                  <td className="py-3.5 px-4 font-bold text-slate-900">{c.name}</td>
-                  <td className="py-3.5 px-4 text-slate-500">{c.email}</td>
-                  <td className="py-3.5 px-4 text-slate-500">{c.phone ?? '-'}</td>
-                  <td className="py-3.5 px-4 font-bold">{c.orders_count} order</td>
-                  <td className="py-3.5 px-4 font-bold text-kravo-orange">{fmt(c.total_spent)}</td>
-                  <td className="py-3.5 px-4 text-slate-400">{c.created_at}</td>
+          <div className="overflow-x-auto">
+            <table className="w-full text-left text-xs min-w-[640px]">
+              <thead className="bg-slate-50 border-b border-slate-200 text-slate-400 font-bold uppercase">
+                <tr>
+                  <th className="py-3 px-4">Nama</th>
+                  <th className="py-3 px-4">Email</th>
+                  <th className="py-3 px-4">No. HP</th>
+                  <th className="py-3 px-4">Total Order</th>
+                  <th className="py-3 px-4">Total Belanja</th>
+                  <th className="py-3 px-4">Bergabung</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+              <tbody className="divide-y divide-slate-100 font-medium">
+                {customers.map(c => (
+                  <tr key={c.id} className="hover:bg-slate-50/50 transition-colors">
+                    <td className="py-3.5 px-4 font-bold text-slate-900">{c.name}</td>
+                    <td className="py-3.5 px-4 text-slate-500">{c.email}</td>
+                    <td className="py-3.5 px-4 text-slate-500">{c.phone ?? '-'}</td>
+                    <td className="py-3.5 px-4 font-bold">{c.orders_count} order</td>
+                    <td className="py-3.5 px-4 font-bold text-kravo-orange">{fmt(c.total_spent)}</td>
+                    <td className="py-3.5 px-4 text-slate-400">{c.created_at}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         )}
 
         {meta && meta.last_page > 1 && (
